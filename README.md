@@ -1,7 +1,7 @@
 meslize-fotomaton
 =================
 
-This is the source of the Android App "Fotomatón".
+This is the source of the Android App "Fotomatón". Download it on https://play.google.com/store/apps/details?id=com.meslize.fotomaton&hl=es
 
 Dependencies:
 - library-appcompat // This library adds support for the Action Bar user interface design pattern. More info https://developer.android.com/tools/support-library/features.html
