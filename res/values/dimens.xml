@@ -1,0 +1,23 @@
+<resources>
+
+    <!-- GENERICOS -->
+    <dimen name="activity_horizontal_margin">16dp</dimen>
+    <dimen name="activity_vertical_margin">16dp</dimen>
+    
+    <dimen name="default_margin">16dp</dimen>
+    <dimen name="default_margin_small">6dp</dimen>
+    <dimen name="default_margin_micro">1dp</dimen>
+    <dimen name="default_margin_big">26dp</dimen>
+    <dimen name="default_margin_xbig">36dp</dimen>
+    <dimen name="text_size_micro">12sp</dimen>
+    <dimen name="text_size_small">14sp</dimen>
+    <dimen name="text_size_medium">18sp</dimen>
+    <dimen name="text_size_large">22sp</dimen>
+    <dimen name="text_size_xlarge">26sp</dimen>
+    <dimen name="text_size_xxlarge">30sp</dimen>
+
+    <dimen name="button_create_photo_width">60dp</dimen>
+    <dimen name="button_create_photo_height">60dp</dimen>
+    
+    <dimen name="dni_image_width">160dp</dimen>
+</resources>

@@ -1,0 +1,48 @@
+<resources>
+    <style name="AppBaseTheme" parent="@style/Theme.AppCompat.Light.DarkActionBar">
+        <item name="android:actionBarStyle">@style/Meslize.ActionBar</item>
+        <item name="android:actionBarTabTextStyle">@style/Meslize.ActionBarTabText</item>
+        <item name="android:actionMenuTextColor">@android:color/white</item>
+        <!--  
+        <item name="android:windowActionBarOverlay">true</item>
+        -->
+        
+        <item name="actionBarStyle">@style/Meslize.ActionBar</item>
+        <item name="actionBarTabTextStyle">@style/Meslize.ActionBarTabText</item>
+        <item name="actionMenuTextColor">@android:color/white</item>
+        <!--
+        <item name="windowActionBarOverlay">true</item>
+    	-->
+    </style>
+
+    <!-- Application theme. -->
+    <style name="AppTheme" parent="AppBaseTheme">
+		<item name="android:windowAnimationStyle">@style/AnimationActivity.Animation</item>
+    </style>
+    
+
+    <style name="Meslize.ActionBar" parent="@style/Widget.AppCompat.Light.ActionBar.Solid.Inverse">
+        <item name="android:background">@color/pink</item>
+        <item name="android:titleTextStyle">@style/Meslize.ActionBarTitleText</item>
+        <item name="background">@color/pink</item>
+        <item name="titleTextStyle">@style/Meslize.ActionBarTitleText</item>
+    </style>
+
+    <style name="Meslize.ActionBarTitleText" parent="@style/TextAppearance.AppCompat.Widget.ActionBar.Title">
+        <item name="android:textColor">@android:color/white</item>
+        <!-- The textColor property is backward compatible with the Support Library -->
+    </style>
+
+    <style name="Meslize.ActionBarTabText" parent="@style/Widget.AppCompat.ActionBar.TabText">
+        <item name="android:textColor">@android:color/white</item>
+    </style>
+    
+    <style name="AnimationActivity" />
+
+    <style name="AnimationActivity.Animation">
+        <item name="android:activityOpenEnterAnimation">@anim/slide_in_right</item>
+        <item name="android:activityOpenExitAnimation">@anim/slide_out_left</item>
+        <item name="android:activityCloseEnterAnimation">@anim/slide_in_left</item>
+        <item name="android:activityCloseExitAnimation">@anim/slide_out_right</item>
+    </style>
+</resources>

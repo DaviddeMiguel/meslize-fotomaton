@@ -1,0 +1,332 @@
+package es.dgt.db;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import quadram.proyect.zero.db.IDao;
+import quadram.proyect.zero.location.LocationsManager;
+import quadram.proyect.zero.util.Functions;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import es.dgt.model.Camara;
+
+public class CamarasDao  implements IDao<Camara>{
+	// Database fields
+	private SQLiteDatabase database;
+	
+	//Causas
+	protected String[] allColumns = {IDao._ID,
+									 IDao.ID,
+									 DGTColumns.CARRETERA,
+									 DGTColumns.SENTIDO,
+									 DGTColumns.PROVINCIA,
+									 DGTColumns.LATITUD,
+									 DGTColumns.LONGITUD,
+									 DGTColumns.IMAGEN,
+									 DGTColumns.FECHA,
+									 DGTColumns.PK,
+									 DGTColumns.SIN_LAT_RAD,
+		 							 DGTColumns.SIN_LON_RAD,
+		 							 DGTColumns.COS_LAT_RAD,
+		 							 DGTColumns.COS_LON_RAD,
+		 							 };
+		
+	public static final int _ID_DATA 			= 0;
+	public static final int ID_DATA 			= 1;
+	public static final int CARRETERA_DATA 		= 2;
+	public static final int SENTIDO_DATA 		= 3;
+	public static final int PROVINCIA_DATA 		= 4;
+	public static final int LATITUD_DATA 		= 5;
+	public static final int LONGITUD_DATA 		= 6;
+	public static final int IMAGEN_DATA 		= 7;
+	public static final int FECHA_DATA 			= 8;
+	public static final int PK_DATA 			= 9;
+	public static final int SIN_LAT_RAD_DATA 	= 10;
+	public static final int SIN_LON_RAD_DATA 	= 11;
+	public static final int COS_LAT_RAD_DATA 	= 12;
+	public static final int COS_LON_RAD_DATA 	= 13;
+	public static final int DISTANCIA_DATA 		= 14;
+	
+	@SuppressWarnings("unused")
+	private CamarasDao(){}
+
+	protected CamarasDao(SQLiteDatabase database){
+		this.database = database;
+	}
+	
+	public SQLiteStatement getBulkInsert(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + DGTSQLiteHelper.TABLE_CAMARAS + 
+        		" ( " + IDao.ID + ", " +
+        		DGTColumns.CARRETERA + ", " +
+        		DGTColumns.SENTIDO + ", " +
+        		DGTColumns.PROVINCIA + ", " +
+        		DGTColumns.LATITUD + ", " +
+        		DGTColumns.LONGITUD + ", " +
+        		DGTColumns.IMAGEN + ", " +
+        		DGTColumns.FECHA + ", " +
+        		DGTColumns.PK + ", " +
+        		DGTColumns.SIN_LAT_RAD + ", " +
+        		DGTColumns.SIN_LON_RAD + ", " +
+        		DGTColumns.COS_LAT_RAD + ", " +
+        		DGTColumns.COS_LON_RAD + ") " +
+        		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+
+	public SQLiteStatement fillBulkInsert(SQLiteStatement insStmt, List<Camara> all){
+		for(int i=0; i<all.size(); i++){            	
+            insStmt.bindString(ID_DATA, all.get(i).getIdCamara());
+            insStmt.bindString(CARRETERA_DATA, all.get(i).getCarretera());
+            insStmt.bindString(SENTIDO_DATA, all.get(i).getSentido());
+            insStmt.bindString(PROVINCIA_DATA, all.get(i).getProvinciaID());
+            insStmt.bindDouble(LATITUD_DATA, all.get(i).getLatitud());
+            insStmt.bindDouble(LONGITUD_DATA, all.get(i).getLongitud());
+            insStmt.bindString(IMAGEN_DATA, all.get(i).getImagen());
+            insStmt.bindString(FECHA_DATA, all.get(i).getFecha());
+            insStmt.bindString(PK_DATA, all.get(i).getPk());
+            insStmt.bindDouble(SIN_LAT_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(all.get(i).getLatitud())));
+            insStmt.bindDouble(SIN_LON_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(all.get(i).getLongitud())));
+            insStmt.bindDouble(COS_LAT_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(all.get(i).getLatitud())));
+            insStmt.bindDouble(COS_LON_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(all.get(i).getLongitud())));
+            all.get(i).setId(insStmt.executeInsert());    //  should really check value here!
+        }
+        
+        return insStmt;
+	}
+
+	@Override
+	public Camara add(Camara type) {
+		int result = update(type);
+		if(result == 0 || result == -1){
+			ContentValues values = new ContentValues();
+			values.put(IDao.ID , type.getIdCamara());
+			values.put(DGTColumns.CARRETERA , type.getCarretera());
+			values.put(DGTColumns.SENTIDO , type.getSentido());
+			values.put(DGTColumns.PROVINCIA , type.getProvinciaID());
+			values.put(DGTColumns.LATITUD , type.getLatitud());
+			values.put(DGTColumns.LONGITUD , type.getLongitud());
+			values.put(DGTColumns.IMAGEN , type.getImagen());
+			values.put(DGTColumns.FECHA , type.getFecha());
+			values.put(DGTColumns.PK , type.getPk());
+			
+			long insertId = database.insert(DGTSQLiteHelper.TABLE_RADARES, null, values);
+			type.setId(insertId);
+			return type;
+		}else{
+			return get(type);
+		}
+	}
+
+	@Override
+	public List<Camara> addAll(List<Camara> all) {
+		database.delete(DGTSQLiteHelper.TABLE_CAMARAS, null, null);
+		
+		SQLiteStatement insStmt = getBulkInsert();
+		database.beginTransaction();
+	
+		try{
+	        try {
+	        	fillBulkInsert(insStmt, all);
+	        }catch(Exception e){
+	        	Functions.log(e);
+	        }
+	        
+	        insStmt.close();
+			
+			database.setTransactionSuccessful();
+        } finally {
+        	database.endTransaction();    
+        }
+
+		return all;
+	}
+
+	@Override
+	public int delete(long id) {
+		return database.delete(DGTSQLiteHelper.TABLE_CAMARAS, IDao._ID + " = " + id, null);
+	}
+
+	@Override
+	public int delete(Camara type) {
+		return database.delete(DGTSQLiteHelper.TABLE_CAMARAS, IDao.ID + " = '" + type.getIdCamara() + "'", null);
+	}
+
+	@Override
+	public int update(Camara type) {
+		ContentValues values = new ContentValues();
+		values.put(IDao.ID , type.getIdCamara());
+		values.put(DGTColumns.CARRETERA , type.getCarretera());
+		values.put(DGTColumns.SENTIDO , type.getSentido());
+		values.put(DGTColumns.PROVINCIA , type.getProvinciaID());
+		values.put(DGTColumns.LATITUD , type.getLatitud());
+		values.put(DGTColumns.LONGITUD , type.getLongitud());
+		values.put(DGTColumns.IMAGEN , type.getImagen());
+		values.put(DGTColumns.FECHA , type.getFecha());
+		values.put(DGTColumns.PK , type.getPk());
+		
+		return database.update(DGTSQLiteHelper.TABLE_CAMARAS, values,IDao.ID + " = '" + type.getIdCamara() + "'", null);
+	}
+
+	@Override
+	public List<Camara> getAll() {
+		List<Camara> result = new ArrayList<Camara>();
+		
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, null, null, null, null, IDao._ID + " DESC");
+		
+		try {
+			if (cursor.getCount() > 0) {
+				while (cursor.moveToNext()) {					
+					result.add(cursorToType(cursor));
+				}
+			}
+		}catch (Exception e){
+			Functions.log(e);
+		}finally{
+			cursor.close();
+		}
+		
+		return result;
+	}
+	
+	public List<Camara> getAll(List<String> selects, List<String[]> argsList) {
+		List<Camara> result = new ArrayList<Camara>();
+		
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, select, null, null, null, IDao._ID + " DESC");
+		
+		for(int i=0; i<selects.size(); i++){
+			Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_CAMARAS + " WHERE " + IDao.ID + selects.get(i) + " ORDER BY " + IDao._ID + " DESC", argsList.get(i));
+
+			try {
+				if (cursor.getCount() > 0) {
+					while (cursor.moveToNext()) {					
+						result.add(cursorToType(cursor));
+					}
+				}
+			}catch (Exception e){
+				Functions.log(e);
+			}finally{
+				cursor.close();
+			}
+		}
+		
+		return result;
+	}
+
+	@Override
+	public Camara get(long id) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, IDao._ID + " = " + id, null, null, null, null);
+
+		String[] args = new String[1];
+		args[0] = String.valueOf(id);
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_CAMARAS + " WHERE " + IDao._ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Camara result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public Camara get(Camara type) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, IDao.ID + " = '" + type.getIdCamara() + "'", null, null, null, null);
+
+		String[] args = new String[1];
+		args[0] = type.getIdCamara();
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_CAMARAS + " WHERE " + IDao.ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Camara result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public Camara get(String id) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, IDao.ID + " = '" + id + "'", null, null, null, null);
+		
+		String[] args = new String[1];
+		args[0] = id;
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_CAMARAS + " WHERE " + IDao.ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Camara result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public Camara cursorToType(Cursor cursor) {
+		try{
+			Camara result = new Camara();
+			result.setId(cursor.getInt(_ID_DATA));
+			result.setIdCamara(cursor.getString(ID_DATA));
+			result.setCarretera(cursor.getString(CARRETERA_DATA));
+			result.setSentido(cursor.getString(SENTIDO_DATA));
+			result.setProvinciaID(cursor.getString(PROVINCIA_DATA));
+			result.setLatitud(cursor.getDouble(LATITUD_DATA));
+			result.setLongitud(cursor.getDouble(LONGITUD_DATA));
+			result.setImagen(cursor.getString(IMAGEN_DATA));
+			result.setFecha(cursor.getString(FECHA_DATA));
+			result.setPk(cursor.getString(PK_DATA));
+			
+			return result;
+		}catch(Exception e){
+			Functions.log(e);
+		}
+		
+		return null;
+	}
+	
+	public String getAllColumns(String[]columns){
+		StringBuilder builder = new StringBuilder();
+		for(int i=0; i<columns.length; i++){
+			builder.append(columns[i]);
+			
+			if(i < columns.length -1){
+				builder.append(", ");
+			}
+		}
+		
+		return builder.toString();
+	}
+	
+	public String[] getArrayWidthColumns(String[]columns, String[]result){
+		for(int i=0; i<columns.length; i++){
+			result[i] = columns[i];
+		}
+		
+		return result;
+	}
+}

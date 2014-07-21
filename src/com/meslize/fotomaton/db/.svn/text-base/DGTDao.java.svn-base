@@ -1,0 +1,460 @@
+package es.dgt.db;
+
+import java.util.List;
+
+import android.content.Context;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+
+import com.google.android.maps.GeoPoint;
+
+import es.dgt.model.Camara;
+import es.dgt.model.ControlVersionesItem;
+import es.dgt.model.Incidencia;
+import es.dgt.model.Radar;
+import es.dgt.model.Ruta;
+
+public class DGTDao {
+	// Database fields
+	private SQLiteDatabase database;
+	private DGTSQLiteHelper dbHelper;
+	
+	private ControlVersionesDao controlVersionesDao;
+	private RadaresDao radaresDao;
+	private CamarasDao camarasDao;
+	private IncidenciasDao incidenciasDao;
+	private IncidenciasDao incidenciasObrasDao;
+	private IncidenciasDao incidenciasRestriccionesDao;
+	private RutasDao rutasDao;
+	
+	@SuppressWarnings("unused")
+	private DGTDao(){}
+	
+	public DGTDao(Context context) {
+		dbHelper = new DGTSQLiteHelper(context);
+		open();
+	}
+	
+	public DGTDao(SQLiteDatabase database) {
+		this.database = database;
+	}
+
+	public void open() throws SQLException {
+		if(database == null || database.isOpen() == false){
+			database = dbHelper.getWritableDatabase();
+		}
+	}
+
+	public void close() {
+		dbHelper.close();
+	}
+	
+	private ControlVersionesDao getControlVersionesDao(){
+		if(controlVersionesDao == null){
+			controlVersionesDao = new ControlVersionesDao(database);
+		}
+		
+		return controlVersionesDao;
+	}
+	
+	private RadaresDao getRadaresDao(){
+		if(radaresDao == null){
+			radaresDao = new RadaresDao(database);
+		}
+		
+		return radaresDao;
+	}
+	
+	private CamarasDao getCamarasDao(){
+		if(camarasDao == null){
+			camarasDao = new CamarasDao(database);
+		}
+		
+		return camarasDao;
+	}
+	
+	private IncidenciasDao getIncidenciasDao(){
+		if(incidenciasDao == null){
+			incidenciasDao = new IncidenciasDao(database);
+			incidenciasDao.setTablaSucesos(DGTSQLiteHelper.TABLE_SUCESOS);
+			incidenciasDao.setTablaSucesosPuntos(DGTSQLiteHelper.TABLE_SUCESOS_PUNTOS);
+			incidenciasDao.setTablaSucesosAreas(DGTSQLiteHelper.TABLE_SUCESOS_AREAS);
+		}
+		
+		return incidenciasDao;
+	}
+	
+	private IncidenciasDao getIncidenciasObrasDao(){
+		if(incidenciasObrasDao == null){
+			incidenciasObrasDao = new IncidenciasDao(database);
+			incidenciasObrasDao.setTablaSucesos(DGTSQLiteHelper.TABLE_SUCESOS_OBRAS);
+			incidenciasObrasDao.setTablaSucesosPuntos(DGTSQLiteHelper.TABLE_SUCESOS_OBRAS_PUNTOS);
+			incidenciasObrasDao.setTablaSucesosAreas(DGTSQLiteHelper.TABLE_SUCESOS_OBRAS_AREAS);
+		}
+		
+		return incidenciasObrasDao;
+	}
+	
+	private IncidenciasDao getIncidenciasRestriccionesDao(){
+		if(incidenciasRestriccionesDao == null){
+			incidenciasRestriccionesDao = new IncidenciasDao(database);
+			incidenciasRestriccionesDao.setTablaSucesos(DGTSQLiteHelper.TABLE_SUCESOS_RESTRICCIONES);
+			incidenciasRestriccionesDao.setTablaSucesosPuntos(DGTSQLiteHelper.TABLE_SUCESOS_RESTRICCIONES_PUNTOS);
+			incidenciasRestriccionesDao.setTablaSucesosAreas(DGTSQLiteHelper.TABLE_SUCESOS_RESTRICCIONES_AREAS);
+		}
+		
+		return incidenciasRestriccionesDao;
+	}
+	
+	private RutasDao getRutasDao(){
+		if(rutasDao == null){
+			rutasDao = new RutasDao(database);
+		}
+		
+		return rutasDao;
+	}
+	
+	/*
+	 * controlversiones methods
+	 */
+	public ControlVersionesItem addControlVersionesItem(ControlVersionesItem item){
+		return getControlVersionesDao().add(item);
+	}
+	
+	public List<ControlVersionesItem> addControlVersionesItems(List<ControlVersionesItem> items){
+		return getControlVersionesDao().addAll(items);
+	}
+	
+	public int deleteControlVersionesItem(long id) {
+		return getControlVersionesDao().delete(id);
+	}
+	
+	public int deleteControlVersionesItem(ControlVersionesItem item) {
+		return getControlVersionesDao().delete(item);
+	}
+	
+	public int updateControlVersionesItem(ControlVersionesItem item) {
+		return getControlVersionesDao().update(item);
+	}
+	
+	public List<ControlVersionesItem> getControlVersionesItems() {
+		return getControlVersionesDao().getAll();
+	}
+	
+	public ControlVersionesItem getControlVersionesItem(long id) {
+		return getControlVersionesDao().get(id);
+	}
+	
+	public ControlVersionesItem getControlVersionesItem(ControlVersionesItem item) {
+		return getControlVersionesDao().get(item);
+	}
+	
+	public ControlVersionesItem getControlVersionesItem(String id) {
+		return getControlVersionesDao().get(id);
+	}
+	
+	/*
+	 * End controlversiones methods
+	 */
+	
+	/*
+	 * Radares methods
+	 */
+	public Radar addRadar(Radar radar){
+		return getRadaresDao().add(radar);
+	}
+	
+	public List<Radar> addRadares(List<Radar> radares){
+		return getRadaresDao().addAll(radares);
+	}
+	
+	public int deleteRadar(long id) {
+		return getRadaresDao().delete(id);
+	}
+	
+	public int deleteRadar(Radar radar) {
+		return getRadaresDao().delete(radar);
+	}
+	
+	public int updateRadar(Radar radar) {
+		return getRadaresDao().update(radar);
+	}
+	
+	public List<Radar> getRadares() {
+		return getRadaresDao().getAll();
+	}
+	
+	public List<Radar> getRadares(List<String> selects, List<String[]> argsList) {
+		return getRadaresDao().getAll(selects, argsList);
+	}
+	
+	public Radar getRadar(long id) {
+		return getRadaresDao().get(id);
+	}
+	
+	public Radar getRadar(Radar radar) {
+		return getRadaresDao().get(radar);
+	}
+	
+	public Radar getRadar(String id) {
+		return getRadaresDao().get(id);
+	}
+	
+	/*
+	 * End radares methods
+	 */
+	
+	/*
+	 * Camaras methods
+	 */
+	public Camara addCamara(Camara camara){
+		return getCamarasDao().add(camara);
+	}
+	
+	public List<Camara> addCamaras(List<Camara> camaras){
+		return getCamarasDao().addAll(camaras);
+	}
+	
+	public int deleteCamara(long id) {
+		return getCamarasDao().delete(id);
+	}
+	
+	public int deleteCamara(Camara camara) {
+		return getCamarasDao().delete(camara);
+	}
+	
+	public int updateCamara(Camara camara) {
+		return getCamarasDao().update(camara);
+	}
+	
+	public List<Camara> getCamaras() {
+		return getCamarasDao().getAll();
+	}
+	
+	public List<Camara> getCamaras(List<String> selects, List<String[]> argsList) {
+		return getCamarasDao().getAll(selects, argsList);
+	}
+	
+	public Camara getCamara(long id) {
+		return getCamarasDao().get(id);
+	}
+	
+	public Camara getCamara(Camara camara) {
+		return getCamarasDao().get(camara);
+	}
+	
+	public Camara getCamara(String id) {
+		return getCamarasDao().get(id);
+	}
+	
+	/*
+	 * End Camaras methods
+	 */
+	
+	/*
+	 * Sucesos methods
+	 */
+	public Incidencia addIncidencia(Incidencia data){
+		return getIncidenciasDao().add(data);
+	}
+	
+	public List<Incidencia> addIncidencias(List<Incidencia> data){
+		return getIncidenciasDao().addAll(data);
+	}
+	
+	public int deleteIncidencia(long id) {
+		return getIncidenciasDao().delete(id);
+	}
+	
+	public int deleteIncidencia(Incidencia data) {
+		return getIncidenciasDao().delete(data);
+	}
+	
+	public int updateIncidencia(Incidencia data) {
+		return getIncidenciasDao().update(data);
+	}
+	
+	public List<Incidencia> getIncidencias() {
+		return getIncidenciasDao().getAll();
+	}
+	
+	public List<Incidencia> getIncidencias(List<String> selects, List<String[]> argsList) {
+		return getIncidenciasDao().getAll(selects, argsList);
+	}
+	
+	public Incidencia getIncidencia(long id) {
+		return getIncidenciasDao().get(id);
+	}
+	
+	public Incidencia getIncidencia(Incidencia data) {
+		return getIncidenciasDao().get(data);
+	}
+	
+	public Incidencia getIncidencia(String id) {
+		return getIncidenciasDao().get(id);
+	}
+	
+	/*
+	 * End sucesos methods
+	 */
+	
+	/*
+	 * Obras methods
+	 */
+	public Incidencia addIncidenciaObras(Incidencia data){
+		return getIncidenciasObrasDao().add(data);
+	}
+	
+	public List<Incidencia> addIncidenciasObras(List<Incidencia> data){
+		return getIncidenciasObrasDao().addAll(data);
+	}
+	
+	public int deleteIncidenciaObras(long id) {
+		return getIncidenciasObrasDao().delete(id);
+	}
+	
+	public int deleteIncidenciaObras(Incidencia data) {
+		return getIncidenciasObrasDao().delete(data);
+	}
+	
+	public int updateIncidenciaObras(Incidencia data) {
+		return getIncidenciasObrasDao().update(data);
+	}
+	
+	public List<Incidencia> getIncidenciasObras() {
+		return getIncidenciasObrasDao().getAll();
+	}
+	
+	public List<Incidencia> getIncidenciasObras(List<String> selects, List<String[]> argsList) {
+		return getIncidenciasObrasDao().getAll(selects, argsList);
+	}
+	
+	public Incidencia getIncidenciaObras(long id) {
+		return getIncidenciasObrasDao().get(id);
+	}
+	
+	public Incidencia getIncidenciaObras(Incidencia data) {
+		return getIncidenciasObrasDao().get(data);
+	}
+	
+	public Incidencia getIncidenciaObras(String id) {
+		return getIncidenciasObrasDao().get(id);
+	}
+	
+	/*
+	 * End obras methods
+	 */
+	
+	/*
+	 * Restricciones methods
+	 */
+	public Incidencia addIncidenciaRestricciones(Incidencia data){
+		return getIncidenciasRestriccionesDao().add(data);
+	}
+	
+	public List<Incidencia> addIncidenciasRestricciones(List<Incidencia> data){
+		return getIncidenciasRestriccionesDao().addAll(data);
+	}
+	
+	public int deleteIncidenciaRestricciones(long id) {
+		return getIncidenciasRestriccionesDao().delete(id);
+	}
+	
+	public int deleteIncidenciaRestricciones(Incidencia data) {
+		return getIncidenciasRestriccionesDao().delete(data);
+	}
+	
+	public int updateIncidenciaRestricciones(Incidencia data) {
+		return getIncidenciasRestriccionesDao().update(data);
+	}
+	
+	public List<Incidencia> getIncidenciasRestricciones() {
+		return getIncidenciasRestriccionesDao().getAll();
+	}
+	
+	public List<Incidencia> getIncidenciasRestricciones(List<String> selects, List<String[]> argsList) {
+		return getIncidenciasRestriccionesDao().getAll(selects, argsList);
+	}
+	
+	
+	public Incidencia getIncidenciaRestricciones(long id) {
+		return getIncidenciasRestriccionesDao().get(id);
+	}
+	
+	public Incidencia getIncidenciaRestricciones(Incidencia data) {
+		return getIncidenciasRestriccionesDao().get(data);
+	}
+	
+	public Incidencia getIncidenciaRestricciones(String id) {
+		return getIncidenciasRestriccionesDao().get(id);
+	}
+	
+	/*
+	 * End Restricciones methods
+	 */
+	
+	
+	/*
+	 * Rutas methods
+	 */
+	public Ruta addRuta(Ruta ruta){
+		return getRutasDao().add(ruta);
+	}
+	
+	public List<Ruta> addRutas(List<Ruta> rutas){
+		return getRutasDao().addAll(rutas);
+	}
+	
+	public int deleteRuta(long id) {
+		return getRutasDao().delete(id);
+	}
+	
+	public int deleteRuta(Ruta ruta) {
+		return getRutasDao().delete(ruta);
+	}
+	
+	public int updateRuta(Ruta ruta) {
+		return getRutasDao().update(ruta);
+	}
+	
+	public List<Ruta> getRutas() {
+		return getRutasDao().getAll();
+	}
+	
+	public Ruta getRuta(long id) {
+		return getRutasDao().get(id);
+	}
+	
+	public Ruta getRuta(Ruta ruta) {
+		return getRutasDao().get(ruta);
+	}
+	
+	public Ruta getRuta(String id) {
+		return getRutasDao().get(id);
+	}
+	
+	/*
+	 * End Rutas methods
+	 */
+	
+	/*
+	 * Rutas Grabadas methods
+	 */
+	
+	public List<GeoPoint> addRutaGrabada(long id_ruta, List<GeoPoint> points){
+		return getRutasDao().addAllRutaGrabada(id_ruta, points);
+	}
+	
+	public int deleteRutaGrabada(long id_ruta) {
+		return getRutasDao().deleteRutaGrabada(id_ruta);
+	}
+	
+	public List<GeoPoint> getRutaGrabada(long id_ruta) {
+		return getRutasDao().getAllRutaGrabada(id_ruta);
+	}
+	
+	/*
+	 * End Rutas Grabadas methods
+	 */
+
+}

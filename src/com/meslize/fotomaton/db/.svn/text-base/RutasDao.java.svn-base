@@ -1,0 +1,383 @@
+package es.dgt.db;
+
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.List;
+import java.util.TooManyListenersException;
+
+import quadram.proyect.zero.db.IDao;
+import quadram.proyect.zero.util.Functions;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+
+import com.google.android.maps.GeoPoint;
+
+import es.dgt.model.Ruta;
+
+public class RutasDao  implements IDao<Ruta>{
+	// Database fields
+	private SQLiteDatabase database;
+	
+	//Rutas
+	protected String[] allColumns = {IDao._ID,
+									 DGTColumns.ORIGEN,
+									 DGTColumns.ORIGEN_LATITUDE_E6,
+									 DGTColumns.ORIGEN_LONGITUDE_E6,
+									 DGTColumns.DESTINO,
+									 DGTColumns.DESTINO_LATITUDE_E6,
+									 DGTColumns.DESTINO_LONGITUDE_E6,
+									 DGTColumns.DATE,
+									 DGTColumns.TYPE,
+									 DGTColumns.DISTANCE,
+									 DGTColumns.TIME,
+									 DGTColumns.TOLLS,
+									 DGTColumns.HIGHWAYS};
+	
+	//Rutas Grabadas
+	protected String[] allColumnsRutasGrabadas = {IDao._ID,
+									 			  DGTColumns.ID_RUTA,
+									 			  DGTColumns.LATITUDE_E6,
+									 			  DGTColumns.LONGITUDE_E6,
+									 			  DGTColumns.TYPE};
+		
+	public static final int _ID_DATA 				= 0;
+	
+	// Rutas
+	public static final int ORIGEN_DATA 			= 1;
+	public static final int ORIGEN_LATITUDE_DATA 	= 2;
+	public static final int ORIGEN_LONGITUDE_DATA 	= 3;
+	public static final int DESTINO_DATA 			= 4;
+	public static final int DESTINO_LATITUDE_DATA 	= 5;
+	public static final int DESTINO_LONGITUDE_DATA 	= 6;
+	public static final int DATE_DATA 				= 7;
+	public static final int TYPE_DATA 				= 8;
+	public static final int DISTANCE_DATA 			= 9;
+	public static final int TIME_DATA 				= 10;
+	public static final int TOLLS_DATA 				= 11;
+	public static final int HIGHWAYS_DATA 			= 12;
+	
+	// Rutas Grabadas
+	public static final int GRABADA_ID_RUTA_DATA 		= 1;
+	public static final int GRABADA_LATITUDE_E6_DATA 	= 2;
+	public static final int GRABADA_LONGITUDE_E6_DATA 	= 3;
+	public static final int GRABADA_TYPE_DATA 			= 4;
+	public static final int GRABADA_DISTANCE_DATA 		= 5;
+	public static final int GRABADA_TIME_DATA 			= 6;
+	
+	@SuppressWarnings("unused")
+	private RutasDao(){}
+
+	protected RutasDao(SQLiteDatabase database){
+		this.database = database;
+	}
+	
+	public SQLiteStatement getBulkInsert(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + DGTSQLiteHelper.TABLE_RUTAS + 
+        		" ( " + DGTColumns.ORIGEN + ", " +
+        		DGTColumns.ORIGEN_LATITUDE_E6 + ", " +
+        		DGTColumns.ORIGEN_LONGITUDE_E6 + ", " +
+        		DGTColumns.DESTINO + ", " +
+        		DGTColumns.DESTINO_LATITUDE_E6 + ", " +
+        		DGTColumns.DESTINO_LONGITUDE_E6 + ", " +
+        		DGTColumns.DATE + ", " +
+        		DGTColumns.TYPE + ", " +
+        		DGTColumns.DISTANCE + ", " +
+        		DGTColumns.TIME + ", " +
+        		DGTColumns.TOLLS + ", " +
+        		DGTColumns.HIGHWAYS + ") " +
+        		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+
+	public SQLiteStatement fillBulkInsert(SQLiteStatement insStmt, List<Ruta> all){
+		for(int i=0; i<all.size(); i++){        	
+            insStmt.bindString(ORIGEN_DATA, all.get(i).getAddress1());
+			if(all.get(i).getAddressGeo1() != null){
+	            insStmt.bindLong(ORIGEN_LATITUDE_DATA, all.get(i).getAddressGeo1().getLatitudeE6());
+	            insStmt.bindLong(ORIGEN_LONGITUDE_DATA, all.get(i).getAddressGeo1().getLongitudeE6());
+			}else{
+	            insStmt.bindLong(ORIGEN_LATITUDE_DATA, Integer.MAX_VALUE);
+	            insStmt.bindLong(ORIGEN_LONGITUDE_DATA, Integer.MAX_VALUE);
+			}
+
+            insStmt.bindString(DESTINO_DATA, all.get(i).getAddress2());
+			if(all.get(i).getAddressGeo2() != null){
+	            insStmt.bindLong(DESTINO_LATITUDE_DATA, all.get(i).getAddressGeo2().getLatitudeE6());
+	            insStmt.bindLong(DESTINO_LONGITUDE_DATA, all.get(i).getAddressGeo2().getLongitudeE6());
+			}else{
+	            insStmt.bindLong(DESTINO_LATITUDE_DATA, Integer.MAX_VALUE);
+	            insStmt.bindLong(DESTINO_LONGITUDE_DATA, Integer.MAX_VALUE);
+			}
+
+            insStmt.bindString(DATE_DATA, all.get(i).getDate());
+            insStmt.bindLong(TYPE_DATA, all.get(i).getType());
+            insStmt.bindDouble(DISTANCE_DATA, all.get(i).getDistance());
+            insStmt.bindLong(TIME_DATA, all.get(i).getTime());
+            insStmt.bindLong(TOLLS_DATA, all.get(i).isAvoidTolls() ? 1 : 0);
+            insStmt.bindLong(HIGHWAYS_DATA, all.get(i).isAvoidHighways() ? 1 : 0);
+            all.get(i).setId(insStmt.executeInsert());    //  should really check value here!
+        }
+        
+        return insStmt;
+	}
+
+	@Override
+	public Ruta add(Ruta type) {
+		int result = update(type);
+		if(result == 0 || result == -1){
+			ContentValues values = new ContentValues();
+			values.put(DGTColumns.ORIGEN , type.getAddress1());
+			if(type.getAddressGeo1() != null){
+				values.put(DGTColumns.ORIGEN_LATITUDE_E6 , type.getAddressGeo1().getLatitudeE6());
+				values.put(DGTColumns.ORIGEN_LONGITUDE_E6 , type.getAddressGeo1().getLongitudeE6());
+			}
+
+			values.put(DGTColumns.DESTINO , type.getAddress2());
+			if(type.getAddressGeo2() != null){
+				values.put(DGTColumns.DESTINO_LATITUDE_E6 , type.getAddressGeo2().getLatitudeE6());
+				values.put(DGTColumns.DESTINO_LONGITUDE_E6 , type.getAddressGeo2().getLongitudeE6());
+			}
+
+			values.put(DGTColumns.DATE , Calendar.getInstance().getTime().toString());
+			values.put(DGTColumns.TYPE , type.getType());
+			values.put(DGTColumns.DISTANCE , type.getDistance());
+			values.put(DGTColumns.TIME , type.getTime());
+			values.put(DGTColumns.TOLLS, type.isAvoidTolls() ? 1 : 0);
+			values.put(DGTColumns.HIGHWAYS, type.isAvoidHighways() ? 1 : 0);
+			
+			long insertId = database.insert(DGTSQLiteHelper.TABLE_RUTAS, null, values);
+			Cursor cursor = 
+				database.query(DGTSQLiteHelper.TABLE_RUTAS, allColumns, IDao._ID + " = " + insertId, null, null, null, null);
+			cursor.moveToFirst();
+
+			type = (Ruta) cursorToType(cursor);
+			
+			cursor.close();
+			return type;
+		}else{
+			return get(type);
+		}
+	}
+
+	@Override
+	public List<Ruta> addAll(List<Ruta> all) {
+		database.delete(DGTSQLiteHelper.TABLE_RUTAS, null, null);
+		
+		SQLiteStatement insStmt = getBulkInsert();
+		database.beginTransaction();
+	
+		try{
+			fillBulkInsert(insStmt, all);
+        	insStmt.close();
+			
+			database.setTransactionSuccessful();
+        } finally {
+        	database.endTransaction();    
+        }
+
+		return all;
+	}
+
+	@Override
+	public int delete(long id) {
+		deleteRutaGrabada(id);
+		return database.delete(DGTSQLiteHelper.TABLE_RUTAS, IDao._ID + " = " + id, null);
+	}
+
+	@Override
+	public int delete(Ruta type) {
+		deleteRutaGrabada(type.getId());
+		return database.delete(DGTSQLiteHelper.TABLE_RUTAS, IDao._ID + " = " + type.getId(), null);
+	}
+
+	@Override
+	public int update(Ruta type) {
+		ContentValues values = new ContentValues();
+		values.put(DGTColumns.ORIGEN , type.getAddress1());
+		if(type.getAddressGeo1() != null){
+			values.put(DGTColumns.ORIGEN_LATITUDE_E6 , type.getAddressGeo1().getLatitudeE6());
+			values.put(DGTColumns.ORIGEN_LONGITUDE_E6 , type.getAddressGeo1().getLongitudeE6());
+		}
+		
+		values.put(DGTColumns.DESTINO , type.getAddress2());
+		if(type.getAddressGeo2() != null){
+			values.put(DGTColumns.DESTINO_LATITUDE_E6 , type.getAddressGeo2().getLatitudeE6());
+			values.put(DGTColumns.DESTINO_LONGITUDE_E6 , type.getAddressGeo2().getLongitudeE6());
+		}
+		
+		values.put(DGTColumns.DATE , Calendar.getInstance().getTime().toString());
+		values.put(DGTColumns.TYPE , type.getType());
+		values.put(DGTColumns.DISTANCE , type.getDistance());
+		values.put(DGTColumns.TIME , type.getTime());
+		values.put(DGTColumns.TOLLS, type.isAvoidTolls() ? 1 : 0);
+		values.put(DGTColumns.HIGHWAYS, type.isAvoidHighways() ? 1 : 0);
+		
+		return database.update(DGTSQLiteHelper.TABLE_RUTAS, values,IDao._ID + " = " + type.getId(), null);
+	}
+
+	@Override
+	public List<Ruta> getAll() {
+		List<Ruta> result = new ArrayList<Ruta>();
+		
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_RUTAS, allColumns, null, null, null, null, DGTColumns.DATE + " DESC");
+		
+		try {
+			if (cursor.getCount() > 0) {
+				while (cursor.moveToNext()) {					
+					result.add(cursorToType(cursor));
+				}
+			}
+		}catch (Exception e){
+			Functions.log(e);
+		}finally{
+			cursor.close();
+		}
+		
+		return result;
+	}
+
+	@Override
+	public Ruta get(long id) {
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_RUTAS, allColumns, IDao._ID + " = " + id, null, null, null, null);
+		cursor.moveToFirst();
+
+		Ruta result = cursorToType(cursor);
+		
+		cursor.close();
+		
+		return result;
+	}
+
+	@Override
+	public Ruta get(Ruta type) {
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_RUTAS, allColumns, IDao._ID + " = " + type.getId(), null, null, null, null);
+		cursor.moveToFirst();
+
+		Ruta result = cursorToType(cursor);
+		
+		cursor.close();
+		
+		return result;
+	}
+
+	@Override
+	public Ruta get(String id) {
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_RUTAS, allColumns, IDao._ID + " = " + id, null, null, null, null);
+		cursor.moveToFirst();
+
+		Ruta result = cursorToType(cursor);
+		
+		cursor.close();
+		
+		return result;
+	}
+
+	@Override
+	public Ruta cursorToType(Cursor cursor) {
+		Ruta result = new Ruta();
+		result.setId(cursor.getInt(_ID_DATA));
+		result.setAddress1(cursor.getString(ORIGEN_DATA));
+		
+		int latitude = cursor.getInt(ORIGEN_LATITUDE_DATA);
+		int longitude = cursor.getInt(ORIGEN_LONGITUDE_DATA);
+		if(latitude != Integer.MAX_VALUE && longitude != Integer.MAX_VALUE){
+			result.setAddressGeo1(new GeoPoint(cursor.getInt(ORIGEN_LATITUDE_DATA), cursor.getInt(ORIGEN_LONGITUDE_DATA)));
+		}
+		
+		result.setAddress2(cursor.getString(DESTINO_DATA));
+		
+		latitude = cursor.getInt(DESTINO_LATITUDE_DATA);
+		longitude = cursor.getInt(DESTINO_LONGITUDE_DATA);
+		if(latitude != Integer.MAX_VALUE && longitude != Integer.MAX_VALUE){
+			result.setAddressGeo2(new GeoPoint(cursor.getInt(DESTINO_LATITUDE_DATA), cursor.getInt(DESTINO_LONGITUDE_DATA)));
+		}
+		
+		result.setDate(cursor.getString(DATE_DATA));
+		result.setType(cursor.getInt(TYPE_DATA));
+		result.setDistance(cursor.getFloat(DISTANCE_DATA));
+		result.setTime(cursor.getLong(TIME_DATA));
+		result.setAvoidTolls(cursor.getInt(TOLLS_DATA) == 1);
+		result.setAvoidHighways(cursor.getInt(HIGHWAYS_DATA) == 1);
+		
+		return result;
+	}
+	
+	/*********************************************************
+	 * Rutas Grabadas
+	 ********************************************************/
+	
+	public SQLiteStatement getBulkInsertRutaGrabada(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + DGTSQLiteHelper.TABLE_RUTAS_GRABADAS + 
+        		" ( " + DGTColumns.ID_RUTA + ", " +
+        		DGTColumns.LATITUDE_E6 + ", " +
+        		DGTColumns.LONGITUDE_E6 + ", " +
+        		DGTColumns.TYPE + ") " +
+        		"VALUES (?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+
+	public SQLiteStatement fillBulkInsertRutaGrabada(SQLiteStatement insStmt, long id_ruta, List<GeoPoint> all){
+		for(int i=0; i<all.size(); i++){        	
+            insStmt.bindLong(GRABADA_ID_RUTA_DATA, id_ruta);
+            insStmt.bindLong(GRABADA_LATITUDE_E6_DATA, all.get(i).getLatitudeE6());
+            insStmt.bindLong(GRABADA_LONGITUDE_E6_DATA, all.get(i).getLongitudeE6());
+            insStmt.bindLong(GRABADA_TYPE_DATA, DGTColumns.RUTA_TYPE_GRABADA);
+            insStmt.executeInsert();    //  should really check value here!
+        }
+        
+        return insStmt;
+	}
+	
+	public List<GeoPoint> addAllRutaGrabada(long id_ruta, List<GeoPoint> all) {		
+		SQLiteStatement insStmt = getBulkInsertRutaGrabada();
+		database.beginTransaction();
+	
+		try{
+			fillBulkInsertRutaGrabada(insStmt, id_ruta, all);
+        	insStmt.close();
+			
+			database.setTransactionSuccessful();
+        } finally {
+        	database.endTransaction();    
+        }
+
+		return all;
+	}
+	
+	public List<GeoPoint> getAllRutaGrabada(long id_ruta) {
+		List<GeoPoint> result = new ArrayList<GeoPoint>();
+		
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_RUTAS_GRABADAS, allColumnsRutasGrabadas, DGTColumns.ID_RUTA + " = " + id_ruta, null, null, null, IDao._ID + " ASC");
+		
+		try {
+			if (cursor.getCount() > 0) {
+				while (cursor.moveToNext()) {					
+					result.add(cursorToTypeRutasGrabada(cursor));
+				}
+			}
+		}catch (Exception e){
+			Functions.log(e);
+		}finally{
+			cursor.close();
+		}
+		
+		return result;
+	}
+	
+	public int deleteRutaGrabada(long id) {
+		return database.delete(DGTSQLiteHelper.TABLE_RUTAS_GRABADAS, DGTColumns.ID_RUTA + " = " + id, null);
+	}
+	
+	public GeoPoint cursorToTypeRutasGrabada(Cursor cursor) {
+		return new GeoPoint(cursor.getInt(GRABADA_LATITUDE_E6_DATA), cursor.getInt(GRABADA_LONGITUDE_E6_DATA));
+	}
+}

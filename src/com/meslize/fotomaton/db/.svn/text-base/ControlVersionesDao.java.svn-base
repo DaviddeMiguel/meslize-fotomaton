@@ -1,0 +1,268 @@
+package es.dgt.db;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import quadram.proyect.zero.db.IDao;
+import quadram.proyect.zero.util.Functions;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import es.dgt.model.ControlVersionesItem;
+
+public class ControlVersionesDao  implements IDao<ControlVersionesItem>{
+	// Database fields
+	private SQLiteDatabase database;
+	
+	//Causas
+	protected String[] allColumns = {IDao._ID,
+									IDao.ID,
+									 DGTColumns.VERSION_DATE,
+									 DGTColumns.VERSION_TIPO,
+									 DGTColumns.VERSION_URL,
+									 DGTColumns.VERSION_TIME_TO_UPDATE,
+									 DGTColumns.VERSION_TTL
+		 							 };
+		
+	public static final int _ID_DATA 					= 0;
+	public static final int ID_DATA 					= 1;
+	public static final int VERSION_DATE_DATA 			= 2;
+	public static final int VERSION_TIPO_DATA 			= 3;
+	public static final int VERSION_URL_DATA 			= 4;
+	public static final int VERSION_TIME_TO_UPDATE_DATA = 5;
+	public static final int VERSION_TTL_DATA 			= 6;
+	
+	@SuppressWarnings("unused")
+	private ControlVersionesDao(){}
+
+	protected ControlVersionesDao(SQLiteDatabase database){
+		this.database = database;
+	}
+	
+	public SQLiteStatement getBulkInsert(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + DGTSQLiteHelper.TABLE_CONTROL_VERSIONES + 
+        		" ( " + IDao.ID + ", " +
+        		DGTColumns.VERSION_DATE + ", " +
+        		DGTColumns.VERSION_TIPO + ", " +
+        		DGTColumns.VERSION_DATE + ", " +
+        		DGTColumns.VERSION_TIME_TO_UPDATE + ", " +
+        		DGTColumns.VERSION_TTL + ") " +
+        		"VALUES (?, ?, ?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+
+	public SQLiteStatement fillBulkInsert(SQLiteStatement insStmt, List<ControlVersionesItem> all){
+		for(int i=0; i<all.size(); i++){            	
+            insStmt.bindString(ID_DATA, all.get(i).getId_tipo());
+            insStmt.bindString(VERSION_DATE_DATA, all.get(i).getDate());
+            insStmt.bindString(VERSION_TIPO_DATA, all.get(i).getTipo());
+            insStmt.bindString(VERSION_URL_DATA, all.get(i).getUrl());
+            insStmt.bindLong(VERSION_TIME_TO_UPDATE_DATA, all.get(i).getTime_to_update());
+            insStmt.bindLong(VERSION_TTL_DATA, all.get(i).getTtl());
+            all.get(i).setId(insStmt.executeInsert());    //  should really check value here!
+        }
+        
+        return insStmt;
+	}
+
+	@Override
+	public ControlVersionesItem add(ControlVersionesItem type) {
+		int result = update(type);
+		if(result == 0 || result == -1){
+			ContentValues values = new ContentValues();
+			values.put(IDao.ID , type.getDate());
+			values.put(DGTColumns.VERSION_DATE , type.getId_tipo());
+			values.put(DGTColumns.VERSION_TIPO , type.getTipo());
+			values.put(DGTColumns.VERSION_URL , type.getUrl());
+			values.put(DGTColumns.VERSION_TIME_TO_UPDATE , type.getTime_to_update());
+			values.put(DGTColumns.VERSION_TTL , type.getTtl());
+			
+			long insertId = database.insert(DGTSQLiteHelper.TABLE_CONTROL_VERSIONES, null, values);
+			type.setId(insertId);
+			return type;
+		}else{
+			return get(type);
+		}
+	}
+
+	@Override
+	public List<ControlVersionesItem> addAll(List<ControlVersionesItem> all) {
+		database.delete(DGTSQLiteHelper.TABLE_CONTROL_VERSIONES, null, null);
+		
+		SQLiteStatement insStmt = getBulkInsert();
+		database.beginTransaction();
+	
+		try{
+	        try {
+	        	fillBulkInsert(insStmt, all);
+	        }catch(Exception e){
+	        	Functions.log(e);
+	        }
+	        
+	        insStmt.close();
+			
+			database.setTransactionSuccessful();
+        } finally {
+        	database.endTransaction();    
+        }
+
+		return all;
+	}
+
+	@Override
+	public int delete(long id) {
+		return database.delete(DGTSQLiteHelper.TABLE_CONTROL_VERSIONES, IDao._ID + " = " + id, null);
+	}
+
+	@Override
+	public int delete(ControlVersionesItem type) {
+		return database.delete(DGTSQLiteHelper.TABLE_CONTROL_VERSIONES, IDao.ID + " = '" + type.getId_tipo() + "'", null);
+	}
+
+	@Override
+	public int update(ControlVersionesItem type) {
+		ContentValues values = new ContentValues();
+		values.put(IDao.ID , type.getDate());
+		values.put(DGTColumns.VERSION_DATE , type.getId_tipo());
+		values.put(DGTColumns.VERSION_TIPO , type.getTipo());
+		values.put(DGTColumns.VERSION_URL , type.getUrl());
+		values.put(DGTColumns.VERSION_TIME_TO_UPDATE , type.getTime_to_update());
+		values.put(DGTColumns.VERSION_TTL , type.getTtl());
+		
+		return database.update(DGTSQLiteHelper.TABLE_CONTROL_VERSIONES, values,IDao.ID + " = '" + type.getId_tipo() + "'", null);
+	}
+
+	@Override
+	public List<ControlVersionesItem> getAll() {
+		List<ControlVersionesItem> result = new ArrayList<ControlVersionesItem>();
+		
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_CONTROL_VERSIONES, allColumns, null, null, null, null, DGTColumns.VERSION_DATE + " DESC");
+		
+		try {
+			if (cursor.getCount() > 0) {
+				while (cursor.moveToNext()) {					
+					result.add(cursorToType(cursor));
+				}
+			}
+		}catch (Exception e){
+			Functions.log(e);
+		}finally{
+			cursor.close();
+		}
+		
+		return result;
+	}
+
+	@Override
+	public ControlVersionesItem get(long id) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, IDao._ID + " = " + id, null, null, null, null);
+
+		String[] args = new String[1];
+		args[0] = String.valueOf(id);
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_CONTROL_VERSIONES + " WHERE " + IDao._ID + " = ?" + " ORDER BY " + DGTColumns.VERSION_DATE + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			ControlVersionesItem result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public ControlVersionesItem get(ControlVersionesItem type) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, IDao.ID + " = '" + type.getIdCamara() + "'", null, null, null, null);
+
+		String[] args = new String[1];
+		args[0] = type.getId_tipo();
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_CONTROL_VERSIONES + " WHERE " + IDao.ID + " = ?" + " ORDER BY " + DGTColumns.VERSION_DATE + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			ControlVersionesItem result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public ControlVersionesItem get(String id) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_CAMARAS, allColumns, IDao.ID + " = '" + id + "'", null, null, null, null);
+		
+		String[] args = new String[1];
+		args[0] = id;
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_CONTROL_VERSIONES + " WHERE " + IDao.ID + " = ?" + " ORDER BY " + DGTColumns.VERSION_DATE + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			ControlVersionesItem result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	@Override
+	public ControlVersionesItem cursorToType(Cursor cursor) {
+		try{
+			ControlVersionesItem result = new ControlVersionesItem();
+			result.setId(cursor.getInt(_ID_DATA));
+			result.setId_tipo(cursor.getString(ID_DATA));
+			result.setDate(cursor.getString(VERSION_DATE_DATA));
+			result.setTipo(cursor.getString(VERSION_TIPO_DATA));
+			result.setUrl(cursor.getString(VERSION_URL_DATA));
+			result.setTime_to_update(cursor.getLong(VERSION_TIME_TO_UPDATE_DATA));
+			result.setTtl(cursor.getLong(VERSION_TTL_DATA));
+
+			return result;
+		}catch(Exception e){
+			Functions.log(e);
+		}
+		
+		return null;
+	}
+	
+	public String getAllColumns(String[]columns){
+		StringBuilder builder = new StringBuilder();
+		for(int i=0; i<columns.length; i++){
+			builder.append(columns[i]);
+			
+			if(i < columns.length -1){
+				builder.append(", ");
+			}
+		}
+		
+		return builder.toString();
+	}
+	
+	public String[] getArrayWidthColumns(String[]columns, String[]result){
+		for(int i=0; i<columns.length; i++){
+			result[i] = columns[i];
+		}
+		
+		return result;
+	}
+}

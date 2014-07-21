@@ -1,0 +1,1042 @@
+package es.dgt.db;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import quadram.proyect.zero.db.IDao;
+import quadram.proyect.zero.location.LocationsManager;
+import quadram.proyect.zero.util.Functions;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import es.dgt.model.Area;
+import es.dgt.model.Incidencia;
+import es.dgt.model.Punto;
+import es.dgt.model.Suceso;
+
+public class IncidenciasDao implements IDao<Incidencia>{
+	// Database fields
+	private SQLiteDatabase database;
+	
+	//Sucesos
+	protected String[] allColumnsSuceso = {IDao._ID,
+									 DGTColumns.ID_INCIDENCIA,  
+									 DGTColumns.CARACTER,
+									 DGTColumns.CATEGORIA,
+									 DGTColumns.CAUSAS,
+									 DGTColumns.FECHA_HORA_FIN,
+									 DGTColumns.ICONO,
+									 IDao.ID,
+									 DGTColumns.FECHA_HORA_INI,
+									 DGTColumns.NOMBRE_LOCALIZACION,
+									 DGTColumns.NIVEL,
+									 DGTColumns.SINGULARIDAD,
+									 DGTColumns.SUBTIPO,
+									 DGTColumns.TIPO,
+									 DGTColumns.VERSION,
+									 DGTColumns.VIALIDADES,
+									 DGTColumns.NUMERO_PUNTOS};
+	
+	//Puntos
+	protected String[] allColumnsPuntos = {IDao._ID,
+										   DGTColumns.ID_INCIDENCIA,
+			 							   DGTColumns.ID_SUCESO,
+			 							   DGTColumns.CARRETERA,
+			 							   DGTColumns.HACIA,
+			 							   DGTColumns.MUNICIPIO,
+			 							   DGTColumns.PK,
+			 							   DGTColumns.POBLACION,
+			 							   DGTColumns.PRECISION,
+			 							   DGTColumns.PROVINCIA,
+			 							   DGTColumns.SENTIDO,
+			 							   DGTColumns.LONGITUD,
+			 							   DGTColumns.LATITUD,
+			 							   DGTColumns.SIN_LAT_RAD,
+			 							   DGTColumns.SIN_LON_RAD,
+			 							   DGTColumns.COS_LAT_RAD,
+			 							   DGTColumns.COS_LON_RAD};
+	//Areas
+	protected String[] allColumnsAreas = {IDao._ID,
+										   DGTColumns.ID_INCIDENCIA,
+			 							   DGTColumns.ID_SUCESO,
+			 							   DGTColumns.COMUNIDAD_AUTONOMA,
+			 							   DGTColumns.MUNICIPIO,
+			 							   DGTColumns.PAIS,
+			 							   DGTColumns.POBLACION,
+			 							   DGTColumns.PROVINCIA,
+			 							   DGTColumns.LONGITUD,
+			 							   DGTColumns.LATITUD,
+			 							   DGTColumns.SIN_LAT_RAD,
+			 							   DGTColumns.SIN_LON_RAD,
+			 							   DGTColumns.COS_LAT_RAD,
+			 							   DGTColumns.COS_LON_RAD};
+	
+	
+	public static final int _ID_DATA = 0;
+	public static final int ID_INCIDENCIA_DATA 			= 1;
+	
+	// Incidencias
+	public static final int CARACTER_DATA 				= 2;
+	public static final int CATEGORIA_DATA 				= 3;
+	public static final int CAUSAS_DATA 				= 4;
+	public static final int FECHA_HORA_FIN_DATA 		= 5;
+	public static final int ICONO_DATA 					= 6;
+	public static final int ID_DATA 					= 7;
+	public static final int FECHA_HORA_INI_DATA 		= 8;
+	public static final int NOMBRE_LOCALIZACION_DATA 	= 9;
+	public static final int NIVEL_DATA 					= 10;
+	public static final int SINGULARIDAD_DATA 			= 11;
+	public static final int SUBTIPO_DATA 				= 12;
+	public static final int TIPO_DATA 					= 13;
+	public static final int VERSION_DATA 				= 14;
+	public static final int VIALIDADES_DATA 			= 15;
+	public static final int NUMERO_PUNTOS_DATA 			= 16;
+
+	// Puntos
+	public static final int ID_SUCESO_DATA 				= 2;
+	public static final int CARRETERA_DATA 				= 3;
+	public static final int HACIA_DATA 					= 4;
+	public static final int MUNICIPIO_DATA 				= 5;
+	public static final int PK_DATA 					= 6;
+	public static final int POBLACION_DATA 				= 7;
+	public static final int PRECISION_DATA 				= 8;
+	public static final int PROVINCIA_DATA 				= 9;
+	public static final int SENTIDO_DATA 				= 10;
+	public static final int LATITUD_DATA 				= 11;
+	public static final int LONGITUD_DATA 				= 12;
+	public static final int SIN_LAT_RAD_DATA 			= 13;
+	public static final int SIN_LON_RAD_DATA 			= 14;
+	public static final int COS_LAT_RAD_DATA 			= 15;
+	public static final int COS_LON_RAD_DATA 			= 16;
+	public static final int DISTANCIA_DATA 				= 17;
+	
+	// Areas
+	public static final int AREA_ID_SUCESO_DATA 			= 2;
+	public static final int AREA_COMUNIDAD_AUTONOMA_DATA 	= 3;
+	public static final int AREA_MUNICIPIO_DATA 			= 4;
+	public static final int AREA_PAIS_DATA 					= 5;
+	public static final int AREA_POBLACION_DATA 			= 6;
+	public static final int AREA_PROVINCIA_DATA 			= 7;
+	public static final int AREA_LATITUD_DATA 				= 8;
+	public static final int AREA_LONGITUD_DATA 				= 9;
+	public static final int AREA_SIN_LAT_RAD_DATA 			= 10;
+	public static final int AREA_SIN_LON_RAD_DATA 			= 11;
+	public static final int AREA_COS_LAT_RAD_DATA 			= 12;
+	public static final int AREA_COS_LON_RAD_DATA 			= 13;
+	public static final int AREA_DISTANCIA_DATA 			= 14;
+	
+	// Tablas
+	private String tablaSucesos = "";
+	private String tablaSucesosPuntos = "";
+	private String tablaSucesosAreas = "";
+
+	@SuppressWarnings("unused")
+	private IncidenciasDao(){}
+
+	protected IncidenciasDao(SQLiteDatabase database){
+		this.database = database;
+	}
+	
+	/**
+	 * Indica sobre que tabla de sucesos trabajara (obras, restricciones ...)
+	 * @param tablaSucesos
+	 */
+	public void setTablaSucesos(String tablaSucesos) {
+		this.tablaSucesos = tablaSucesos;
+	}
+
+	/**
+	 * Indica sobre que tabla de puntos trabajara (obras, restricciones ...)
+	 * @param tablaSucesosPuntos
+	 */
+	public void setTablaSucesosPuntos(String tablaSucesosPuntos) {
+		this.tablaSucesosPuntos = tablaSucesosPuntos;
+	}
+
+	/**
+	 * Indica sobre que tabla de areas trabajara (obras, restricciones ...)
+	 * @param tablaSucesosAreas
+	 */
+	public void setTablaSucesosAreas(String tablaSucesosAreas) {
+		this.tablaSucesosAreas = tablaSucesosAreas;
+	}
+
+	/**
+	 * Crea un String a partir de un array de strings proporcionados
+	 * @param values
+	 * @return
+	 */
+	public String getStringList(String[] values){
+		StringBuilder builder = new StringBuilder();
+		for(int i=0; i<values.length; i++){
+			builder.append(values[i]);
+			
+			if(i < values.length -1){
+				builder.append(", ");
+			}
+		}
+		
+		return builder.toString();
+	}
+
+	/*
+	 * Metodos Sucesos
+	 */
+	
+	/**
+	 * Crea la consulta que se utilizara para insertar las incidencias en la base de datos.
+	 */
+	public SQLiteStatement getBulkInsertIncidencias(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + tablaSucesos + 
+        		" ( " + DGTColumns.ID_INCIDENCIA + ", " +
+        		DGTColumns.CARACTER + ", " +
+        		DGTColumns.CATEGORIA + ", " +
+        		DGTColumns.CAUSAS + ", " +
+        		DGTColumns.FECHA_HORA_FIN + ", " +
+        		DGTColumns.ICONO + ", " +
+        		IDao.ID + ", " +
+        		DGTColumns.FECHA_HORA_INI + ", " +
+        		DGTColumns.NOMBRE_LOCALIZACION + ", " +
+        		DGTColumns.NIVEL + ", " +
+        		DGTColumns.SINGULARIDAD + ", " +
+        		DGTColumns.SUBTIPO + ", " +
+        		DGTColumns.TIPO + ", " +
+        		DGTColumns.VERSION + ", " +
+        		DGTColumns.VIALIDADES + ", " +
+        		DGTColumns.NUMERO_PUNTOS + ") " +
+        		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Prepara la inserccion de incidencias en la base de datos.
+	 * @param insStmt
+	 * @param type
+	 * @return
+	 */
+	public SQLiteStatement fillBulkInsertIncidencias(SQLiteStatement insStmt, Incidencia type){
+		for(int i=0; i<type.getSucesos().size(); i++){          	
+            insStmt.bindString(ID_INCIDENCIA_DATA, type.getIdIncidencia());
+            insStmt.bindString(CARACTER_DATA, type.getSucesos().get(i).getCaracter());
+            insStmt.bindString(CATEGORIA_DATA, type.getSucesos().get(i).getCategoria());
+            insStmt.bindString(CAUSAS_DATA, getStringList(type.getSucesos().get(i).getCausas()));
+            insStmt.bindString(FECHA_HORA_FIN_DATA, type.getSucesos().get(i).getFechaHoraFin());
+            insStmt.bindString(ICONO_DATA, type.getSucesos().get(i).getIcono());
+            insStmt.bindString(ID_DATA, type.getSucesos().get(i).getIdSuceso());
+            insStmt.bindString(FECHA_HORA_INI_DATA, type.getSucesos().get(i).getFechaHoraIni());
+            insStmt.bindString(NOMBRE_LOCALIZACION_DATA, type.getSucesos().get(i).getNombreLocalizacion());
+            insStmt.bindString(NIVEL_DATA, type.getSucesos().get(i).getNivel());
+            insStmt.bindString(SINGULARIDAD_DATA, type.getSucesos().get(i).getSingularidad());
+            insStmt.bindString(SUBTIPO_DATA, type.getSucesos().get(i).getSubtipo());
+            insStmt.bindString(TIPO_DATA, type.getSucesos().get(i).getTipo());
+            insStmt.bindString(VERSION_DATA, type.getSucesos().get(i).getVersion());
+            insStmt.bindString(VIALIDADES_DATA, getStringList(type.getSucesos().get(i).getVialidades()));
+            insStmt.bindLong(NUMERO_PUNTOS_DATA, type.getSucesos().get(i).getPuntos().size());
+            type.getSucesos().get(i).setId(insStmt.executeInsert());    //  should really check value here!
+            
+            addPuntos(type.getIdIncidencia(), type.getSucesos().get(i));
+            addAreas(type.getIdIncidencia(), type.getSucesos().get(i));
+        }
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Añade una incidencia dada a la base de datos.
+	 */
+	@Override
+	public Incidencia add(Incidencia type) {
+		int result = update(type);
+		if(result == 0 || result == -1){
+	        SQLiteStatement insStmt = getBulkInsertIncidencias();
+	        database.beginTransaction();
+	        
+	        try {
+	        	insStmt = fillBulkInsertIncidencias(insStmt, type);
+	        	insStmt.close();
+	        	
+	            database.setTransactionSuccessful();
+			} catch(Exception e){
+				Functions.log(e);
+	        } finally {
+	        	database.endTransaction();    
+	        }  
+
+			return type;
+		}else{
+			return get(type);
+		}
+	}
+
+	/**
+	 * Añade un grupo de incidencias a la base de datos.
+	 */
+	@Override
+	public List<Incidencia> addAll(List<Incidencia> all) {
+		SQLiteStatement insStmt = getBulkInsertIncidencias();
+		database.beginTransaction();
+		
+		database.delete(tablaSucesos, null, null);
+		database.delete(tablaSucesosPuntos, null, null);
+		database.delete(tablaSucesosAreas, null, null);
+		
+		try{
+			for(Incidencia item : all){
+		        try {
+		        	insStmt = fillBulkInsertIncidencias(insStmt, item);	
+		        }catch(Exception e){
+		        	Functions.log(e);
+		        }
+			}
+			
+			insStmt.close();
+			
+			database.setTransactionSuccessful();
+		} catch(Exception e){
+			Functions.log(e);
+        } finally {
+        	database.endTransaction();    
+        }
+
+		return all;
+	}
+
+	/**
+	 * Borra de la base de datos una incidencia a partir de una incidencia dada utilizando su id de base de datos.
+	 */
+	@Override
+	public int delete(long id) {
+		Incidencia data = get(id);
+		for(Suceso item : data.getSucesos()){
+			deletePuntos(item);
+			deleteAreas(item);
+		}
+		
+		return database.delete(tablaSucesos, IDao._ID + " = " + id, null);
+	}
+
+	/**
+	 * Borra de la base de datos una incidencia a partir de una incidencia dada utilizando su id de incidencia.
+	 */
+	@Override
+	public int delete(Incidencia type) {
+		Incidencia data = get(type);
+		for(Suceso item : data.getSucesos()){
+			deletePuntos(item);
+			deleteAreas(item);
+		}
+		
+		return database.delete(tablaSucesos, DGTColumns.ID_INCIDENCIA + " = '" + type.getIdIncidencia() + "'", null);
+	}
+
+	/**
+	 * Actualiza una incidencia a partir de una incidencia dada utilizando su id de incidencia.
+	 */
+	@Override
+	public int update(Incidencia type) {
+		int result = 0;
+		
+		for(Suceso data : type.getSucesos()){
+			ContentValues values = new ContentValues();
+			values.put(DGTColumns.ID_INCIDENCIA , type.getIdIncidencia());
+			values.put(DGTColumns.CARACTER , data.getCaracter());
+			values.put(DGTColumns.CATEGORIA , data.getCategoria());
+			values.put(DGTColumns.CAUSAS , getStringList(data.getCausas()));
+			values.put(DGTColumns.FECHA_HORA_FIN , data.getFechaHoraFin());
+			values.put(DGTColumns.ICONO , data.getIcono());
+			values.put(IDao.ID , data.getIdSuceso());
+			values.put(DGTColumns.FECHA_HORA_INI , data.getFechaHoraIni());
+			values.put(DGTColumns.NOMBRE_LOCALIZACION , data.getNombreLocalizacion());
+			values.put(DGTColumns.NIVEL , data.getNivel());
+			values.put(DGTColumns.SINGULARIDAD , data.getSingularidad());
+			values.put(DGTColumns.SUBTIPO , data.getSubtipo());
+			values.put(DGTColumns.TIPO , data.getTipo());
+			values.put(DGTColumns.VERSION , data.getVersion());
+			values.put(DGTColumns.VIALIDADES , getStringList(data.getVialidades()));
+			values.put(DGTColumns.NUMERO_PUNTOS , data.getPuntos().size());
+			result = result + database.update(tablaSucesos, values, DGTColumns.ID_INCIDENCIA + " = '" + type.getIdIncidencia() + "'", null);
+		
+			addPuntos(type.getIdIncidencia(), data);
+			addAreas(type.getIdIncidencia(), data);
+		}
+		
+		return result;
+	}
+
+	/**
+	 * Recupera todas las incidencias de la base de datos.
+	 */
+	@Override
+	public List<Incidencia> getAll() {
+		List<Incidencia> result = new ArrayList<Incidencia>();
+		
+		Cursor cursor = 
+			database.query(tablaSucesos, allColumnsSuceso, null, null, null, null, DGTColumns.ID_INCIDENCIA + " DESC");
+		
+		try {
+			if (cursor.getCount() > 0) {
+				String idIncidencia = "";
+				
+				Incidencia item = null;
+				while (cursor.moveToNext()) {
+					String idIncidenciaAux = cursor.getString(ID_INCIDENCIA_DATA);
+					if(!idIncidenciaAux.equals(idIncidencia) && !idIncidenciaAux.equals("")){
+						idIncidencia = idIncidenciaAux;
+						
+						if(item != null){
+							result.add(item);
+						}
+						
+						item = new Incidencia();
+						item.setIdIncidencia(idIncidenciaAux);
+					}
+
+					Suceso suceso = cursorToSuceso(cursor);
+					item.getSucesos().add(suceso);
+				}
+				
+				if(item != null && !result.contains(item)){
+					result.add(item);
+				}
+			}
+		}catch (Exception e){
+			Functions.log(e);
+		}finally{
+			cursor.close();
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * Devuelve un listado de incidencias a partir de unos ids de incidencia proporcionados.
+	 * El metodo actua con variables de sqlite por eso esta dividido en fragmentos para que no sobrepase el maximo de variables.
+	 * @param selects
+	 * @param argsList
+	 * @return
+	 */
+	public List<Incidencia> getAll(List<String> selects, List<String[]> argsList) {
+		List<Incidencia> result = new ArrayList<Incidencia>();
+		
+//		Cursor cursor = 
+//			database.query(tablaSucesos, allColumnsSuceso, select, null, null, null, DGTColumns.ID_INCIDENCIA + " DESC");
+		
+		for(int i=0; i<selects.size(); i++){
+			Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumnsSuceso) + " FROM " + tablaSucesos + " WHERE " + IDao.ID + selects.get(i) + " ORDER BY " + DGTColumns.ID_INCIDENCIA + " DESC", argsList.get(i));
+
+			try {
+				if (cursor.getCount() > 0) {
+					String idIncidencia = "";
+					
+					Incidencia item = null;
+					while (cursor.moveToNext()) {
+						String idIncidenciaAux = cursor.getString(ID_INCIDENCIA_DATA);
+						if(!idIncidenciaAux.equals(idIncidencia) && !idIncidenciaAux.equals("")){
+							idIncidencia = idIncidenciaAux;
+							
+							if(item != null){
+								result.add(item);
+							}
+							
+							item = new Incidencia();
+							item.setIdIncidencia(idIncidenciaAux);
+						}
+
+						Suceso suceso = cursorToSuceso(cursor);
+						item.getSucesos().add(suceso);
+					}
+					
+					if(item != null && !result.contains(item)){
+						result.add(item);
+					}
+				}
+			}catch (Exception e){
+				Functions.log(e);
+			}finally{
+				cursor.close();
+			}
+		}
+		
+		return result;
+	}
+
+	/**
+	 * Devuelve una incidencia a partir del id que genero la base de datos cuando fue insertado (autoincremental).
+	 */
+	@Override
+	public Incidencia get(long id) {
+//		Cursor cursor = 
+//			database.query(tablaSucesos, allColumnsSuceso, DGTColumns.ID_INCIDENCIA + " = '" + id + "'", null, null, null, null);
+		
+		String[] args = new String[1];
+		args[0] = String.valueOf(id);
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumnsSuceso) + " FROM " + tablaSucesos + " WHERE " + IDao._ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Incidencia result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	/**
+	 * Devuelve una incidencia a partir de una incidencia dada.
+	 */
+	public Incidencia get(Incidencia type) {
+//		Cursor cursor = 
+//			database.query(tablaSucesos, allColumnsSuceso, DGTColumns.ID_INCIDENCIA + " = '" + type.getIdIncidencia() + "'", null, null, null, null);
+
+		String[] args = new String[1];
+		args[0] = type.getIdIncidencia();
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumnsSuceso) + " FROM " + tablaSucesos + " WHERE " + IDao.ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Incidencia result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	/**
+	 * Devuelve una incidencia a partir de un id de incidencia dado.
+	 */
+	@Override
+	public Incidencia get(String id) {
+//		Cursor cursor = 
+//			database.query(tablaSucesos, allColumnsSuceso, DGTColumns.ID_INCIDENCIA + " = '" + id + "'", null, null, null, null);
+
+		String[] args = new String[1];
+		args[0] = id;
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumnsSuceso) + " FROM " + tablaSucesos + " WHERE " + IDao.ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Incidencia result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	/**
+	 * Crea una incidencia a partir de un cursor.
+	 */
+	@Override
+	public Incidencia cursorToType(Cursor cursor) {
+		try{
+			Incidencia result = new Incidencia();
+			String idIncidencia = null;
+			
+			while (cursor.moveToNext()) {
+				if(idIncidencia == null){
+					idIncidencia = cursor.getString(ID_INCIDENCIA_DATA);
+				}
+				
+				Suceso suceso = cursorToSuceso(cursor);
+				result.getSucesos().add(suceso);
+			}
+			
+			result.setIdIncidencia(idIncidencia);
+			
+			return result;
+		}catch(Exception e){
+			Functions.log(e);
+		}
+
+		return null;
+	}
+	
+	/**
+	 * Crea un suceso a partir de un cursor.
+	 * @param cursor
+	 * @return
+	 */
+	public Suceso cursorToSuceso(Cursor cursor){
+		try{
+			Suceso result = new Suceso();
+			result.setId(cursor.getInt(_ID_DATA));
+			result.setCaracter(cursor.getString(CARACTER_DATA));
+			result.setCategoria(cursor.getString(CATEGORIA_DATA));
+			result.setCausas(cursor.getString(CAUSAS_DATA).split(","));
+			result.setFechaHoraFin(cursor.getString(FECHA_HORA_FIN_DATA));
+			result.setIcono(cursor.getString(ICONO_DATA));
+			result.setIdSuceso(cursor.getString(ID_DATA));
+			result.setFechaHoraIni(cursor.getString(FECHA_HORA_INI_DATA));
+			result.setNombreLocalizacion(cursor.getString(NOMBRE_LOCALIZACION_DATA));
+			result.setNivel(cursor.getString(NIVEL_DATA));
+			result.setSingularidad(cursor.getString(SINGULARIDAD_DATA));
+			result.setSubtipo(cursor.getString(SUBTIPO_DATA));
+			result.setTipo(cursor.getString(TIPO_DATA));
+			result.setVersion(cursor.getString(VERSION_DATA));
+			result.setVialidades(cursor.getString(VIALIDADES_DATA).split(","));
+			
+			result = getPuntos(result);
+			result = getAreas(result);
+			
+			return result;
+		}catch(Exception e){
+			Functions.log(e);
+		}
+		
+		return null;
+	}
+	
+	/*
+	 * Fin metodos sucesos
+	 */
+
+	/*
+	 * Metodos Puntos
+	 */
+	
+	/**
+	 * Crea la consulta para insertar en base de datos los puntos de un suceso.
+	 */
+	public SQLiteStatement getBulkInsertPuntos(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + tablaSucesosPuntos + 
+        		" ( " + DGTColumns.ID_INCIDENCIA + ", " + 
+        		DGTColumns.ID_SUCESO + ", " +
+        		DGTColumns.CARRETERA + ", " +
+        		DGTColumns.HACIA + ", " +
+        		DGTColumns.MUNICIPIO + ", " +
+        		DGTColumns.PK + ", " +
+        		DGTColumns.POBLACION + ", " +
+        		DGTColumns.PRECISION + ", " +
+        		DGTColumns.PROVINCIA + ", " +
+        		DGTColumns.SENTIDO + ", " +
+        		DGTColumns.LONGITUD + ", " +
+        		DGTColumns.LATITUD + ", " +
+        		DGTColumns.SIN_LAT_RAD + ", " +
+        		DGTColumns.SIN_LON_RAD + ", " +
+        		DGTColumns.COS_LAT_RAD + ", " +
+        		DGTColumns.COS_LON_RAD + ") " +
+        		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Rellena la consulta de inserccion de puntos en la base de datos.
+	 * @param insStmt
+	 * @param idIncidencia
+	 * @param type
+	 * @return
+	 */
+	public SQLiteStatement fillBulkInsertPuntos(SQLiteStatement insStmt, String idIncidencia, Suceso type){
+		for(int i=0; i<type.getPuntos().size(); i++){
+			insStmt.bindString(ID_INCIDENCIA_DATA, idIncidencia);
+            insStmt.bindString(ID_SUCESO_DATA, type.getIdSuceso());
+            insStmt.bindString(CARRETERA_DATA, type.getPuntos().get(i).getCarretera());
+            insStmt.bindString(HACIA_DATA, type.getPuntos().get(i).getHacia());
+            insStmt.bindString(MUNICIPIO_DATA, type.getPuntos().get(i).getMunicipio());
+            insStmt.bindString(PK_DATA, type.getPuntos().get(i).getPk());
+            insStmt.bindString(POBLACION_DATA, type.getPuntos().get(i).getPoblacion());
+            insStmt.bindString(PRECISION_DATA, type.getPuntos().get(i).getPrecision());
+            insStmt.bindString(PROVINCIA_DATA, type.getPuntos().get(i).getCodProvincia());
+            insStmt.bindString(SENTIDO_DATA, type.getPuntos().get(i).getSentido());
+            insStmt.bindString(LONGITUD_DATA, type.getPuntos().get(i).getLongitud());
+            insStmt.bindString(LATITUD_DATA, type.getPuntos().get(i).getLatitud());
+            insStmt.bindDouble(SIN_LAT_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(type.getPuntos().get(i).getLatitudDouble())));
+            insStmt.bindDouble(SIN_LON_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(type.getPuntos().get(i).getLongitudDouble())));
+            insStmt.bindDouble(COS_LAT_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(type.getPuntos().get(i).getLatitudDouble())));
+            insStmt.bindDouble(COS_LON_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(type.getPuntos().get(i).getLongitudDouble())));
+            
+            type.getPuntos().get(i).setId(insStmt.executeInsert());    //  should really check value here!
+		}
+
+        return insStmt;
+	}
+	
+	/**
+	 * Crea la consulta de borrado de puntos.
+	 * @return
+	 */
+	public SQLiteStatement getBulkDeletePuntos(){
+        SQLiteStatement insStmt = database.compileStatement("DELETE FROM " + tablaSucesosPuntos + 
+        		" WHERE " + DGTColumns.ID_SUCESO + " = ?");
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Rellena la consulta de borrado de puntos.
+	 * @param insStmt
+	 * @param type
+	 * @return
+	 */
+	public SQLiteStatement fillBulkDeletePuntos(SQLiteStatement insStmt, Suceso type){
+        insStmt.bindString(ID_SUCESO_DATA, type.getIdSuceso());
+        insStmt.execute();
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Añade los puntos de un suceso a la base de datos.
+	 * @param idIncidencia
+	 * @param type
+	 * @return
+	 */
+	public Suceso addPuntos(String idIncidencia, Suceso type) {
+        SQLiteStatement insStmt = getBulkInsertPuntos();
+        insStmt = fillBulkInsertPuntos(insStmt, idIncidencia, type);      
+        insStmt.close();
+        
+		return type;
+	}
+
+	/**
+	 * Borra los puntos para un suceso dado.
+	 * @param type
+	 * @return
+	 */
+	public int deletePuntos(Suceso type) {
+        SQLiteStatement insStmt = getBulkDeletePuntos();
+        insStmt = fillBulkDeletePuntos(insStmt, type); 
+        insStmt.close();
+        
+		return 0;
+	}
+	
+	/**
+	 * Devuelve un suceso con los puntos que le corresponden rellenos.
+	 * @param type
+	 * @return
+	 */
+	public Suceso getPuntos(Suceso type) {
+//		Cursor cursor = 
+//			database.query(tablaSucesosPuntos, allColumnsPuntos, DGTColumns.ID_SUCESO + " = '" + type.getIdSuceso() + "'", null, null, null, null);
+		String[] args = new String[1];
+		args[0] = type.getIdSuceso();
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumnsPuntos) + " FROM " + tablaSucesosPuntos + " WHERE " + DGTColumns.ID_SUCESO + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+
+		if (cursor.getCount() > 0) {
+			type.setPuntos(cursorToPunto(cursor));
+		}
+		
+		cursor.close();
+		
+		return type;
+	}
+	
+	/**
+	 * Este metodo recibe un cursor con filas de puntos y los convierte a objetos.
+	 * @param cursor
+	 * @return
+	 */
+	public List<Punto> cursorToPunto(Cursor cursor) {
+		try{
+			List<Punto> result = new ArrayList<Punto>();
+			
+			while (cursor.moveToNext()) {
+				Punto punto = new Punto();
+//				punto.setIdSuceso(cursor.getString(ID_SUCESO_DATA));
+				punto.setCarretera(cursor.getString(CARRETERA_DATA));
+				punto.setHacia(cursor.getString(HACIA_DATA));
+				punto.setMunicipio(cursor.getString(MUNICIPIO_DATA));
+				punto.setPk(cursor.getString(PK_DATA));
+				punto.setPoblacion(cursor.getString(POBLACION_DATA));
+				punto.setPrecision(cursor.getString(PRECISION_DATA));
+				punto.setCodProvincia(cursor.getString(PROVINCIA_DATA));
+				punto.setSentido(cursor.getString(SENTIDO_DATA));
+				punto.setLongitud(cursor.getString(LONGITUD_DATA));
+				punto.setLatitud(cursor.getString(LATITUD_DATA));
+				
+				result.add(punto);
+			}
+			
+			return result;
+		}catch(Exception e){
+			Functions.log(e);
+		}
+		
+		return null;
+	}
+
+	
+	/*
+	 * Fin metodos Puntos
+	 */
+	
+	/*
+	 * Metodos Areas
+	 */
+	
+	/**
+	 * Prepara la consulta para insertar areas de un determinado suceso.
+	 */
+	public SQLiteStatement getBulkInsertAreas(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + tablaSucesosAreas + 
+        		" ( " + DGTColumns.ID_INCIDENCIA + ", " +
+        		DGTColumns.ID_SUCESO + ", " +
+        		DGTColumns.COMUNIDAD_AUTONOMA + ", " +
+        		DGTColumns.MUNICIPIO + ", " +
+        		DGTColumns.PAIS + ", " +
+        		DGTColumns.POBLACION + ", " +
+        		DGTColumns.PROVINCIA + ", " +
+        		DGTColumns.LONGITUD + ", " +
+        		DGTColumns.LATITUD + ", " +
+        		DGTColumns.SIN_LAT_RAD + ", " +
+        		DGTColumns.SIN_LON_RAD + ", " +
+        		DGTColumns.COS_LAT_RAD + ", " +
+        		DGTColumns.COS_LON_RAD + ") " +
+        		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Prepara los insert en la tabla de areas para un suceso.
+	 * @param insStmt
+	 * @param idIncidencia
+	 * @param type
+	 * @return
+	 */
+	public SQLiteStatement fillBulkInsertAreas(SQLiteStatement insStmt, String idIncidencia, Suceso type){
+		for(int i=0; i<type.getAreas().size(); i++){
+			insStmt.bindString(ID_INCIDENCIA_DATA, idIncidencia);
+			insStmt.bindString(AREA_ID_SUCESO_DATA, type.getIdSuceso());
+            insStmt.bindString(AREA_COMUNIDAD_AUTONOMA_DATA, type.getAreas().get(i).getComunidadAutonomaCod());
+            insStmt.bindString(AREA_MUNICIPIO_DATA, type.getAreas().get(i).getMunicipio());
+            insStmt.bindString(AREA_PAIS_DATA, type.getAreas().get(i).getPais());
+            insStmt.bindString(AREA_POBLACION_DATA, type.getAreas().get(i).getPoblacion());
+            insStmt.bindString(AREA_PROVINCIA_DATA, type.getAreas().get(i).getCodProvincia());
+            insStmt.bindString(AREA_LONGITUD_DATA, type.getAreas().get(i).getLongitud());
+            insStmt.bindString(AREA_LATITUD_DATA, type.getAreas().get(i).getLatitud());
+            insStmt.bindDouble(AREA_SIN_LAT_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(type.getAreas().get(i).getLatitudDouble())));
+            insStmt.bindDouble(AREA_SIN_LON_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(type.getAreas().get(i).getLongitudDouble())));
+            insStmt.bindDouble(AREA_COS_LAT_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(type.getAreas().get(i).getLatitudDouble())));
+            insStmt.bindDouble(AREA_COS_LON_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(type.getAreas().get(i).getLongitudDouble())));
+            type.getAreas().get(i).setId(insStmt.executeInsert());    //  should really check value here!
+		}
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Prepara la consulta de borrado para las areas de un suceso.
+	 * @return
+	 */
+	public SQLiteStatement getBulkDeleteAreas(){
+        SQLiteStatement insStmt = database.compileStatement("DELETE FROM " + tablaSucesosAreas + 
+        		" WHERE " + DGTColumns.ID_SUCESO + " = ?");
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Prepara el borrado de las areas para un suceso dado.
+	 * @param insStmt
+	 * @param type
+	 * @return
+	 */
+	public SQLiteStatement fillBulkDeleteAreas(SQLiteStatement insStmt, Suceso type){
+        insStmt.bindString(AREA_ID_SUCESO_DATA, type.getIdSuceso());
+        insStmt.execute();
+        
+        return insStmt;
+	}
+	
+	/**
+	 * Añade las areas de un suceso a la tabla de areas.
+	 * @param idIncidencia
+	 * @param type
+	 * @return
+	 */
+	public Suceso addAreas(String idIncidencia, Suceso type) {
+        SQLiteStatement insStmt = getBulkInsertAreas();
+        insStmt = fillBulkInsertAreas(insStmt, idIncidencia, type);      
+        insStmt.close();
+        
+		return type;
+	}
+
+	/**
+	 * Elimina las areas para un suceso dado.
+	 * @param type
+	 * @return
+	 */
+	public int deleteAreas(Suceso type) {
+        SQLiteStatement insStmt = getBulkDeleteAreas();
+        insStmt = fillBulkDeleteAreas(insStmt, type); 
+        insStmt.close();
+        
+		return 0;
+	}
+	
+	/**
+	 * Devuelve un suceso con sus areas correspondientes tras recuperarlas de la base de datos.
+	 * @param type
+	 * @return
+	 */
+	public Suceso getAreas(Suceso type) {
+//		Cursor cursor = 
+//			database.query(tablaSucesosAreas, allColumnsAreas, DGTColumns.ID_SUCESO + " = '" + type.getIdSuceso() + "'", null, null, null, null);
+		
+		
+		String[] args = new String[1];
+		args[0] = type.getIdSuceso();
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumnsAreas) + " FROM " + tablaSucesosAreas + " WHERE " + DGTColumns.ID_SUCESO + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+
+		if (cursor.getCount() > 0) {
+			type.setAreas(cursorToArea(cursor));
+		}
+		
+		cursor.close();
+		
+		return type;
+	}
+	
+	/**
+	 * Recupera los datos de las areas que devuelve un cursor en un ArrayList
+	 * @param cursor
+	 * @return
+	 */
+	public List<Area> cursorToArea(Cursor cursor) {
+		try{
+			List<Area> result = new ArrayList<Area>();
+			
+			while (cursor.moveToNext()) {
+				Area area = new Area();
+				area.setComunidadAutonomaCod(cursor.getString(AREA_COMUNIDAD_AUTONOMA_DATA));
+				area.setMunicipio(cursor.getString(AREA_MUNICIPIO_DATA));
+				area.setPais(cursor.getString(AREA_PAIS_DATA));
+				area.setPoblacion(cursor.getString(AREA_POBLACION_DATA));
+				area.setCodProvincia(cursor.getString(AREA_PROVINCIA_DATA));
+				area.setLongitud(cursor.getString(AREA_LONGITUD_DATA));
+				area.setLatitud(cursor.getString(AREA_LATITUD_DATA));
+				
+				result.add(area);
+			}
+			
+			return result;
+		}catch(Exception e){
+			Functions.log(e);
+		}
+		
+		return null;
+	}
+
+	
+	/*
+	 * Fin metodos Areas
+	 */
+	
+	/**
+	 * Crea un string con las columnas proporcionadas para realizar una "rawquery"
+	 */
+	public String getAllColumns(String[]columns){
+		StringBuilder builder = new StringBuilder();
+		for(int i=0; i<columns.length; i++){
+			builder.append(columns[i]);
+			
+			if(i < columns.length -1){
+				builder.append(", ");
+			}
+		}
+		
+		return builder.toString();
+	}
+	
+	/**
+	 * Devuelve un array proporcionado con los items correspondientes a las columnas de la tabla rellenas
+	 * @param columns
+	 * @param result
+	 * @return
+	 */
+	public String[] getArrayWidthColumns(String[]columns, String[]result){
+		for(int i=0; i<columns.length; i++){
+			result[i] = columns[i];
+		}
+		
+		return result;
+	}
+	
+	
+//	public void getSucesosPuntosCercania(List<GeoPoint> points) {
+//		
+//		Cursor cursor = null;
+//		
+//		String distanceFormula = "(sin_lat_rad * %d + cos_lat_rad * %d * (sin_lon_rad * %d + cos_lon_rad * %d))";
+//		String OR = " OR ";
+//		
+//		for(GeoPoint point : points){
+//			double latitudeRadians = LocationsManager.fromE6ToRadians(point.getLatitudeE6());
+//			double longitudeRadians = LocationsManager.fromE6ToRadians(point.getLongitudeE6());
+//			
+//			double latitudeSin = Math.sin(latitudeRadians);
+//			double latitudeCos = Math.cos(latitudeRadians);
+//			double longitudeSin = Math.sin(longitudeRadians);
+//			double longitudeCos = Math.cos(longitudeRadians);
+//			
+//			String[] args = new String[] {String.valueOf(latitudeSin), String.valueOf(latitudeCos), String.valueOf(longitudeSin), String.valueOf(longitudeCos)};
+//			cursor = database.rawQuery("SELECT id_suceso, carretera, municipio, poblacion, x, y, (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM SucesosPuntos WHERE distance_acos >= " + Constants.DISTANCIA_CERCANA_RUTA + " ORDER BY distance_acos DESC", args);
+//			
+//			
+//			
+//			//			cursor = database.rawQuery("SELECT id_suceso, carretera, municipio, poblacion, x, y, (sin_lat_rad * " + latitudeSin +" + cos_lat_rad * " + latitudeCos + " * (sin_lon_rad * " + longitudeSin + " + cos_lon_rad * " + longitudeCos + ")) AS distance_acos FROM SucesosPuntos WHERE distance_acos >= " + Constants.DISTANCIA_CERCANA_RUTA + " ORDER BY distance_acos DESC", null);
+//
+//			int i = 0;
+//			Functions.log("CURSOR : ", String.valueOf(cursor.getCount()));
+//			while (cursor.moveToNext()) {
+//				Functions.log("NUEVO : ", String.valueOf(i));
+//				Functions.log("ID_SUCESO : ", cursor.getString(0));
+//				Functions.log("CARRETERA : ", cursor.getString(1));
+//				Functions.log("MUNICIPIO : ", cursor.getString(2));
+//				Functions.log("POBLACION : ", cursor.getString(3));
+//				Functions.log("X : ", cursor.getString(4));
+//				Functions.log("Y : ", cursor.getString(5));
+//				Functions.log("DISTANCIA : ", Math.acos(cursor.getDouble(6)) * 6371 + "");
+//				 
+//				
+//				i++;
+//			}
+//			
+//			cursor.close();
+//			
+//			/*
+//			 String[] args = new String[] {"usu1"};
+//			Cursor c = db.rawQuery(" SELECT usuario,email FROM Usuarios WHERE usuario=? ", args);
+//
+//			 */
+//		}
+//		
+//		
+//	}
+	
+	/*
+	 https://github.com/sozialhelden/wheelmap-android/wiki/Sqlite,-Distance-calculations
+	 
+	 
+	 
+	 SELECT "location",
+(sin_lat_rad * "sin_lat_rad" + cos_lat_rad * "cos_lat_rad" *
+ (sin_lon_rad * "sin_lon_rad" + cos_lon_rad * "cos_lon_rad")) AS "distance_acos"
+FROM "locations"
+ORDER BY "distance_acos" DESC
+LIMIT 10;
+	 */
+}

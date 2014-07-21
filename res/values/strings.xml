@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="by_meslize">By Meslize</string>
+    
+    <string name="app_name">Photo booth</string>
+    <string name="action_save">Save</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_back">Back</string>
+    <string name="action_undo">Undo</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_share">Share</string>
+    <string name="action_good">Rate</string>
+    <string name="action_delete">Delete</string>
+    
+    <string name="info_image_cancel">Image cancelled</string>
+    <string name="info_image_failed">Image failed</string>
+    <string name="info_image_saved">Saved</string>
+    <string name="info_image_saved_error">An error occurred</string>
+    <string name="info_image_history_error">Error loading history</string>
+    <string name="info_image_area_not_valid">Area not valid</string>
+    
+    <string name="share_title">Look this app: %1s</string>
+    <string name="share_text">This app make me happy: \n%1s \n\n&#8212;\nBy Meslize || http://www.meslize.com</string>
+
+	<string name="delete_title">to delete</string>
+
+</resources>

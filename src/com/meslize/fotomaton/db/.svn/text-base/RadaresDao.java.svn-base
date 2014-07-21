@@ -1,0 +1,375 @@
+package es.dgt.db;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import quadram.proyect.zero.db.IDao;
+import quadram.proyect.zero.location.LocationsManager;
+import quadram.proyect.zero.util.Functions;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteStatement;
+import es.dgt.model.Radar;
+
+public class RadaresDao  implements IDao<Radar>{
+	// Database fields
+	private SQLiteDatabase database;
+	
+	protected String[] allColumns = {IDao._ID,
+									 IDao.ID,
+									 DGTColumns.CARRETERA,
+									 DGTColumns.SENTIDO,
+									 DGTColumns.LATITUD,
+									 DGTColumns.LONGITUD,
+									 DGTColumns.PROVINCIA,
+									 DGTColumns.PK,
+									 DGTColumns.SIN_LAT_RAD,
+		 							 DGTColumns.SIN_LON_RAD,
+		 							 DGTColumns.COS_LAT_RAD,
+		 							 DGTColumns.COS_LON_RAD};
+		
+	public static final int _ID_DATA 			= 0;
+	public static final int ID_DATA 			= 1;
+	public static final int CARRETERA_DATA 		= 2;
+	public static final int SENTIDO_DATA 		= 3;
+	public static final int LATITUD_DATA 		= 4;
+	public static final int LONGITUD_DATA 		= 5;
+	public static final int PROVINCIA_DATA 		= 6;
+	public static final int PK_DATA 			= 7;
+	public static final int SIN_LAT_RAD_DATA 	= 8;
+	public static final int SIN_LON_RAD_DATA 	= 9;
+	public static final int COS_LAT_RAD_DATA 	= 10;
+	public static final int COS_LON_RAD_DATA 	= 11;
+	public static final int DISTANCIA_DATA 		= 12;
+	
+	@SuppressWarnings("unused")
+	private RadaresDao(){}
+
+	protected RadaresDao(SQLiteDatabase database){
+		this.database = database;
+	}
+	
+	/**
+	 * Crea la consulta para insertar los radares en la base de datos.
+	 * @return
+	 */
+	public SQLiteStatement getBulkInsert(){
+        SQLiteStatement insStmt = database.compileStatement("INSERT INTO " + DGTSQLiteHelper.TABLE_RADARES + 
+        		" ( " + IDao.ID + ", " +
+        		DGTColumns.CARRETERA + ", " +
+        		DGTColumns.SENTIDO + ", " +
+        		DGTColumns.LATITUD + ", " +
+        		DGTColumns.LONGITUD + ", " +
+        		DGTColumns.PROVINCIA + ", " +
+        		DGTColumns.PK + ", " +
+        		DGTColumns.SIN_LAT_RAD + ", " +
+        		DGTColumns.SIN_LON_RAD + ", " +
+        		DGTColumns.COS_LAT_RAD + ", " +
+        		DGTColumns.COS_LON_RAD + ") " +
+        		"VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?);");
+        
+        return insStmt;
+	}
+
+	/**
+	 * Rellena las consultas para insertar en base de datos los radares.
+	 * @param insStmt
+	 * @param all
+	 * @return
+	 */
+	public SQLiteStatement fillBulkInsert(SQLiteStatement insStmt, List<Radar> all){
+		for(int i=0; i<all.size(); i++){        	
+            insStmt.bindString(ID_DATA, all.get(i).getIdRadar());
+            insStmt.bindString(CARRETERA_DATA, all.get(i).getCarretera());
+            insStmt.bindString(SENTIDO_DATA, all.get(i).getSentido());
+            insStmt.bindDouble(LATITUD_DATA, all.get(i).getLatitud());
+            insStmt.bindDouble(LONGITUD_DATA, all.get(i).getLongitud());
+            insStmt.bindString(PROVINCIA_DATA, all.get(i).getProvinciaID());
+            insStmt.bindString(PK_DATA, all.get(i).getPk());
+            insStmt.bindDouble(SIN_LAT_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(all.get(i).getLatitud())));
+            insStmt.bindDouble(SIN_LON_RAD_DATA, Math.sin(LocationsManager.fromDegreesToRadians(all.get(i).getLongitud())));
+            insStmt.bindDouble(COS_LAT_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(all.get(i).getLatitud())));
+            insStmt.bindDouble(COS_LON_RAD_DATA, Math.cos(LocationsManager.fromDegreesToRadians(all.get(i).getLongitud())));
+            
+            all.get(i).setId(insStmt.executeInsert());    //  should really check value here!
+        }
+        
+        return insStmt;
+	}
+
+	/**
+	 * Añade un radar que viene como parametro a la base de datos.
+	 */
+	@Override
+	public Radar add(Radar type) {
+		int result = update(type);
+		if(result == 0 || result == -1){
+			ContentValues values = new ContentValues();
+			values.put(IDao.ID , type.getIdRadar());
+			values.put(DGTColumns.CARRETERA , type.getCarretera());
+			values.put(DGTColumns.SENTIDO , type.getSentido());
+			values.put(DGTColumns.LATITUD , type.getLatitud());
+			values.put(DGTColumns.LONGITUD , type.getLongitud());
+			values.put(DGTColumns.PROVINCIA , type.getProvinciaID());
+			values.put(DGTColumns.PK , type.getPk());
+			
+			
+			long insertId = database.insert(DGTSQLiteHelper.TABLE_RADARES, null, values);
+			type.setId(insertId);
+			return type;
+		}else{
+			return get(type);
+		}
+	}
+
+	/**
+	 * Añade un grupo de radares pasados como parametros.
+	 */
+	@Override
+	public List<Radar> addAll(List<Radar> all) {
+		database.delete(DGTSQLiteHelper.TABLE_RADARES, null, null);
+		
+		SQLiteStatement insStmt = getBulkInsert();
+		database.beginTransaction();
+	
+		try{
+	        try {
+	        	fillBulkInsert(insStmt, all);
+	        	insStmt.close();
+	        }catch(Exception e){
+	        	Functions.log(e);
+	        }
+			
+			database.setTransactionSuccessful();
+        } finally {
+        	database.endTransaction();    
+        }
+
+		return all;
+	}
+
+	/**
+	 * Elimina un radar por su id de base de datos.
+	 */
+	@Override
+	public int delete(long id) {
+		return database.delete(DGTSQLiteHelper.TABLE_RADARES, IDao._ID + " = " + id, null);
+	}
+
+	/**
+	 * Elimina un radar a partir de un proporcionado utilizando su id de radar.
+	 */
+	@Override
+	public int delete(Radar type) {
+		return database.delete(DGTSQLiteHelper.TABLE_RADARES, IDao.ID + " = '" + type.getIdRadar() + "'", null);
+	}
+
+	/**
+	 * Actualiza un radar.
+	 */
+	@Override
+	public int update(Radar type) {
+		ContentValues values = new ContentValues();
+		values.put(IDao.ID , type.getIdRadar());
+		values.put(DGTColumns.CARRETERA , type.getCarretera());
+		values.put(DGTColumns.SENTIDO , type.getSentido());
+		values.put(DGTColumns.LATITUD , type.getLatitud());
+		values.put(DGTColumns.LONGITUD , type.getLongitud());
+		values.put(DGTColumns.PROVINCIA , type.getProvinciaID());
+		values.put(DGTColumns.PK , type.getPk());
+		
+		return database.update(DGTSQLiteHelper.TABLE_RADARES, values,IDao.ID + " = '" + type.getIdRadar() + "'", null);
+	}
+
+	/**
+	 * Recupera todos los radares que haya en la base de datos.
+	 */
+	@Override
+	public List<Radar> getAll() {
+		List<Radar> result = new ArrayList<Radar>();
+		
+		Cursor cursor = 
+			database.query(DGTSQLiteHelper.TABLE_RADARES, allColumns, null, null, null, null, IDao._ID + " DESC");
+		
+		try {
+			if (cursor.getCount() > 0) {
+				while (cursor.moveToNext()) {					
+					result.add(cursorToType(cursor));
+				}
+			}
+		}catch (Exception e){
+			Functions.log(e);
+		}finally{
+			cursor.close();
+		}
+		
+		return result;
+	}
+	
+	/**
+	 * Recupera todos los radares de la base de datos que contengan algun id que viene en el listado proporcionado
+	 * @param selects Variables sql para la consulta
+	 * @param argsList Datos reales.
+	 * @return
+	 */
+	public List<Radar> getAll(List<String> selects, List<String[]> argsList) {
+		List<Radar> result = new ArrayList<Radar>();
+				
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_RADARES, allColumns, select, null, null, null, IDao._ID + " DESC");
+		
+		for(int i=0; i<selects.size(); i++){
+			Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_RADARES + " WHERE " + IDao.ID + selects.get(i) + " ORDER BY " + IDao._ID + " DESC", argsList.get(i));
+			
+			try {
+				if (cursor.getCount() > 0) {
+					while (cursor.moveToNext()) {					
+						result.add(cursorToType(cursor));
+					}
+				}
+			}catch (Exception e){
+				Functions.log(e);
+			}finally{
+				cursor.close();
+			}
+		}
+
+		return result;
+	}
+
+	/**
+	 * Devuelve un radar a partir de su id de base de datos.
+	 */
+	@Override
+	public Radar get(long id) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_RADARES, allColumns, IDao._ID + " = " + id, null, null, null, null);
+		
+		String[] args = new String[1];
+		args[0] = String.valueOf(id);
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_RADARES + " WHERE " + IDao._ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Radar result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	/**
+	 * Devuelve un radar a partir de otro utilizando su id de radar.
+	 */
+	@Override
+	public Radar get(Radar type) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_RADARES, allColumns, IDao.ID + " = '" + type.getIdRadar() + "'", null, null, null, null);
+//		
+		String[] args = new String[1];
+		args[0] = String.valueOf(type.getIdRadar());
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_RADARES + " WHERE " + IDao._ID + " = ?" + " ORDER BY " + IDao.ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Radar result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	/**
+	 * Devuelve un radar a partir de otro utilizando su id de radar.
+	 */
+	@Override
+	public Radar get(String id) {
+//		Cursor cursor = 
+//			database.query(DGTSQLiteHelper.TABLE_RADARES, allColumns, IDao.ID + " = '" + id + "'", null, null, null, null);
+		
+		String[] args = new String[1];
+		args[0] = id;
+		
+		Cursor cursor = database.rawQuery("SELECT " + getAllColumns(allColumns) + " FROM " + DGTSQLiteHelper.TABLE_RADARES + " WHERE " + IDao.ID + " = ?" + " ORDER BY " + IDao._ID + " DESC", args);
+		
+		if(cursor.getCount() > 0){
+			cursor.moveToFirst();
+
+			Radar result = cursorToType(cursor);
+			
+			cursor.close();
+			
+			return result;
+		}else{
+			return null;
+		}
+	}
+
+	/**
+	 * Convierte una fila del cursor en un objeto.
+	 */
+	@Override
+	public Radar cursorToType(Cursor cursor) {
+		try{
+			Radar result = new Radar();
+			result.setId(cursor.getInt(_ID_DATA));
+			result.setIdRadar(cursor.getString(ID_DATA));
+			result.setCarretera(cursor.getString(CARRETERA_DATA));
+			result.setSentido(cursor.getString(SENTIDO_DATA));
+			result.setLatitud(cursor.getDouble(LATITUD_DATA));
+			result.setLongitud(cursor.getDouble(LONGITUD_DATA));
+			result.setProvinciaID(cursor.getString(PROVINCIA_DATA));
+			result.setPk(cursor.getString(PK_DATA));
+			
+			return result;
+		}catch(Exception e){
+			Functions.log(e);
+		}
+		
+		return null;
+	}
+	
+	/**
+	 * Crea un string a partir de un array de strings para guardarlo en una sola columna de la base de datos.
+	 * @param columns
+	 * @return
+	 */
+	public String getAllColumns(String[]columns){
+		StringBuilder builder = new StringBuilder();
+		for(int i=0; i<columns.length; i++){
+			builder.append(columns[i]);
+			
+			if(i < columns.length -1){
+				builder.append(", ");
+			}
+		}
+		
+		return builder.toString();
+	}
+	
+	/**
+	 * Rellena los primeros campos de un array que se utilizara en una consulta con las columnas de la tabla, ademas de estos se tendran
+	 * que rellenar los otros que se quieran.
+	 * @param columns
+	 * @param result
+	 * @return
+	 */
+	public String[] getArrayWidthColumns(String[]columns, String[]result){
+		for(int i=0; i<columns.length; i++){
+			result[i] = columns[i];
+		}
+		
+		return result;
+	}
+}

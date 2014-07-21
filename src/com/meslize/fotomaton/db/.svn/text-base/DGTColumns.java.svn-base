@@ -1,0 +1,74 @@
+package es.dgt.db;
+
+
+public class DGTColumns{
+	
+	public static final String VERSION_DATE = "date";
+	public static final String VERSION_TIPO = "tipo";
+	public static final String VERSION_URL = "url";
+	public static final String VERSION_TIME_TO_UPDATE = "time_to_update";
+	public static final String VERSION_TTL = "ttl";
+	
+	//Campos de Radares
+	public static final String CARRETERA 	= "carretera";
+	public static final String SENTIDO 		= "sentido";
+	public static final String LATITUD 		= "latitud";
+	public static final String LONGITUD	 	= "longitud";
+	public static final String PROVINCIA 	= "provincia";
+	//Campos de Radares mas Camaras
+	public static final String IMAGEN 		= "imagen";
+	public static final String FECHA 		= "fecha";
+	public static final String PK	 		= "pk";
+	
+	//Campos de Incidencias
+	public static final String ID_INCIDENCIA = "id_incidencia";
+	public static final String VERSION = "version";
+	public static final String CATEGORIA = "categoria";
+	public static final String CARACTER = "caracter";
+	public static final String TIPO = "_tipo";
+	public static final String SUBTIPO = "subtipo";
+	public static final String NIVEL = "nivel";
+	public static final String ICONO = "icono";
+	public static final String FECHA_HORA_INI = "fechahora_ini";
+	public static final String FECHA_HORA_FIN = "fechahora_fin";
+	public static final String CAUSAS = "causas";
+	public static final String VIALIDADES = "vialidades";
+	public static final String NUMERO_PUNTOS= "numero_puntos";
+	public static final String NOMBRE_LOCALIZACION	= "nombre_localizacion";
+	public static final String ID_SUCESO = "id_suceso";
+	public static final String SINGULARIDAD 	= "singularidad";
+	public static final String ID_TRAMO = "id_trampo";
+	public static final String MUNICIPIO = "municipio";
+	public static final String POBLACION = "poblacion";
+	public static final String HACIA = "hacia";
+	public static final String PRECISION = "precision";
+	public static final String COMUNIDAD_AUTONOMA = "comunidad_autonoma";
+	public static final String PAIS = "pais";
+	
+	public static final String SIN_LAT_RAD = "sin_lat_rad";
+	public static final String SIN_LON_RAD = "sin_lon_rad";
+	public static final String COS_LAT_RAD = "cos_lat_rad";
+	public static final String COS_LON_RAD = "cos_lon_rad";
+	
+	//Rutas
+	public static final int RUTA_TYPE_GOOGLE  = 0;
+	public static final int RUTA_TYPE_GRABADA = 1;
+	
+	public static final String ORIGEN 				= "origen";
+	public static final String ORIGEN_LATITUDE_E6	= "origen_latitude";
+	public static final String ORIGEN_LONGITUDE_E6 	= "origen_longitude";
+	public static final String DESTINO 				= "destino";
+	public static final String DESTINO_LATITUDE_E6 	= "destino_latitude";
+	public static final String DESTINO_LONGITUDE_E6 = "destino_longitude";
+	public static final String DATE					= "date";
+	public static final String TYPE					= "type";
+	public static final String DISTANCE				= "distance";
+	public static final String TIME					= "time";
+	public static final String TOLLS				= "tolls";
+	public static final String HIGHWAYS				= "highways";
+	
+	// Grabar Rutas
+	public static final String ID_RUTA				= "id_ruta";
+	public static final String LATITUDE_E6			= "latitude";
+	public static final String LONGITUDE_E6 		= "longitude";
+}

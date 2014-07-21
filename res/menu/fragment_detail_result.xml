@@ -1,0 +1,16 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:meslize="http://schemas.android.com/apk/res-auto" >
+
+    <item
+        android:id="@+id/action_accept"
+        android:icon="@drawable/ic_action_accept"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_accept"
+        meslize:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/action_share"
+        android:title="@string/action_share"
+        meslize:actionProviderClass="android.support.v7.widget.ShareActionProvider"
+        meslize:showAsAction="ifRoom"/>
+
+</menu>

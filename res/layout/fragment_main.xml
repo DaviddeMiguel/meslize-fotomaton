@@ -1,0 +1,42 @@
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent" >
+
+    <GridView
+        android:id="@+id/listview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:gravity="center"
+        android:horizontalSpacing="@dimen/default_margin_micro"
+        android:numColumns="2"
+        android:stretchMode="columnWidth"
+        android:columnWidth="@dimen/dni_image_width"
+        android:verticalSpacing="@dimen/default_margin_micro"
+        android:drawSelectorOnTop="true"
+        android:fastScrollEnabled="true"
+        android:scrollbars="none" />
+
+    <!--  
+    <ListView
+        android:id="@+id/listview"
+        android:layout_width="match_parent"
+        android:layout_height="match_parent"
+        android:cacheColorHint="@null"
+        android:divider="@android:color/transparent"
+        android:dividerHeight="0dip"
+        android:drawSelectorOnTop="true"
+        android:fastScrollEnabled="true"
+        android:scrollbars="none" />
+	-->
+	
+    <com.framework.library.view.ButtonStates
+        android:id="@+id/button_create_image"
+        android:layout_width="@dimen/button_create_photo_width"
+        android:layout_height="@dimen/button_create_photo_height"
+        android:layout_alignParentBottom="true"
+        android:layout_alignParentRight="true"
+        android:layout_margin="@dimen/default_margin_big"
+        android:background="@drawable/bg_button_new" />
+
+</RelativeLayout>

@@ -1,0 +1,28 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <string name="by_meslize">By Meslize</string>
+    
+    <string name="app_name">Fotomatón</string>
+    <string name="action_save">Guardar</string>
+    <string name="action_accept">Aceptar</string>
+    <string name="action_back">Volver</string>
+    <string name="action_undo">Deshacer</string>
+    <string name="action_cancel">Cancelar</string>
+    <string name="action_share">Compartir</string>
+    <string name="action_good">Valorar</string>
+    <string name="action_delete">Elininar</string>
+    
+    <string name="info_image_cancel">Imagen cancelada</string>
+    <string name="info_image_failed">Error con la imagen</string>
+    <string name="info_image_saved">Guardado</string>
+    <string name="info_image_saved_error">A ocurrido un error</string>
+    <string name="info_image_history_error">Error con el historial</string>
+    <string name="info_image_area_not_valid">Area no válida</string>
+    
+    <string name="share_title">Mira esta aplicación: %1s</string>
+    <string name="share_text">Realmente es muy buena: \n%1s \n\n&#8212;\nBy Meslize || http://www.meslize.com</string>
+
+	<string name="delete_title">para borrar</string>
+    
+</resources>

@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    
+    
+    
+    
+    <color name="pink">#d71661</color>
+    <color name="pink_transparent">#80d71661</color>
+    <color name="gray_dark">#303030</color>
+    
+    
+	<color name="blue_electric">#16a5d7</color>
+	<color name="green_electric">#92c500</color>
+	<color name="yellow_electric">#ff8a00</color>
+	<color name="black_shadow">#99000000</color>
+	<color name="blue_medium">#33b5e5</color>
+	
+</resources>

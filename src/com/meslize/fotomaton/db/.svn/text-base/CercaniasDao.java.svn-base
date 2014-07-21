@@ -1,0 +1,566 @@
+package es.dgt.db;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Calendar;
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+
+import quadram.proyect.zero.db.IDao;
+import quadram.proyect.zero.location.LocationsManager;
+import quadram.proyect.zero.util.DistanceFunctions;
+import quadram.proyect.zero.util.Functions;
+import android.content.Context;
+import android.database.Cursor;
+import android.database.SQLException;
+import android.database.sqlite.SQLiteDatabase;
+import android.location.Location;
+import android.os.Handler;
+import android.os.Message;
+
+import com.google.android.maps.GeoPoint;
+
+import es.dgt.R;
+import es.dgt.controller.ControllerInterfaces.CercaniasListener;
+import es.dgt.model.Camara;
+import es.dgt.model.Camaras;
+import es.dgt.model.ElementCercania;
+import es.dgt.model.Incidencia;
+import es.dgt.model.Incidencias;
+import es.dgt.model.IncidenciasObras;
+import es.dgt.model.IncidenciasRestricciones;
+import es.dgt.model.Radar;
+import es.dgt.model.Radares;
+import es.dgt.util.Constants;
+import es.dgt.util.Constants.DataType;
+
+public class CercaniasDao{
+	
+	// Database fields
+	private SQLiteDatabase database;
+	private DGTSQLiteHelper dbHelper;
+	
+	// Este es el handler que recibira una llamada cuando haya terminado de filtrar los puntos
+	private Handler handler;
+	
+	// Geopoints iniciales
+	private List<GeoPoint> points;
+	
+	// Mapas que diferenciaran sobre que tipo de objeto estamos analizando en los hilos
+	private HashMap<Object, Object[]> mapArray;
+	private HashMap<Object, Integer> mapTotalSections;
+	private HashMap<Object, Integer> mapIndex;
+	
+	private List<Runnable> threads = new ArrayList<Runnable>();
+	
+	// Geopoints por hilo que se van a filtrar
+	private int division = 1000;
+	
+	// Numero maximo de threads al mismo tiempo
+	private int maxThread = 5;
+	
+	// Contador de veces que se ha llamado al metodo
+	int countToClose = 0;
+	
+	// Maxima distancia entre dos puntos de la ruta en metros
+	float maxdistace = 0;
+	// Si la distancia entre dos puntos es menor a esta no se calculan los cercanos
+	int maxDictanceAllowed = 5000;
+	
+	// Puntos finales donde se buscan los datos cercanos
+	int finalPoints = 0;
+	
+	int maxVariableClauseIn = 50;
+	
+	private double distanceLimit = DistanceFunctions.distanceAcos(Constants.RADIO_DISTANCIA_CERCANA_RUTA);
+
+	/**
+	 * Constructor del dao, recibe un listener donde llamara cuando termine de recuperar los datos cercanos de cada tipo
+	 * @param listener
+	 */
+	public CercaniasDao(Context context, CercaniasListener listener) {
+		handler = new HandlerFilterCercanos(listener);
+		dbHelper = new DGTSQLiteHelper(context);
+		open();
+		
+		mapArray = new HashMap<Object, Object[]>();
+		mapTotalSections = new HashMap<Object, Integer>();
+		mapIndex = new HashMap<Object, Integer>();
+	}
+
+	/**
+	 * Abre la base de datos
+	 * @throws SQLException
+	 */
+	public void open() throws SQLException {
+		try{
+			if(database == null || database.isOpen() == false && !database.isDbLockedByCurrentThread() && !database.isDbLockedByOtherThreads()){
+				database = dbHelper.getWritableDatabase();
+			}	
+		}catch(Exception e){
+			Functions.log(e);
+			database = null;
+		}
+	}
+
+	/**
+	 * Cierra la base de datos
+	 */
+	public void close() {
+		dbHelper.close();
+	}
+
+	/**
+	 * Este metodo averigua en cuantos fragmentos se puede dividir un array segun el numero de items que queremos que conste cada pedazo
+	 * del array, una vez averiguado cuantos salen se crea un hilo por cada trozo que recorrera esa parte del array realizando la tarea
+	 * necesaria.
+	 * En este caso el array son puntos geograficos de una ruta y los hilos averiguan que elementos(radares, camaras ...) se encuentran
+	 * en un radio dado de algun punto de la ruta.
+	 * Al final del metodo se añade un ultimo hilo en caso de que la division en partes del listado no haya sido exacta.
+	 * @param type Gracias a este parametro sabemos que tipo de dato vamos a buscar en el hilo (camara, radar, incidencia ...)
+	 * @param points
+	 */
+	public void getNearBy(DataType dataType, List<GeoPoint> points) {
+		try{		
+			countToClose++;
+			
+			this.points = points;
+			
+			// Numero de secciones en las que se dividen los puntos sin contemplar el resto.
+			int sections = points.size() / division;
+			
+			int totalSections;
+			// Aqui si el resto es mayor que 0 es que hay otra seccion que tiene menos elementos que la division fijada
+			if(points.size() % division > 0){
+				totalSections = sections + 1;
+			}else{
+				totalSections = sections;
+			}
+			
+			mapTotalSections.put(dataType, totalSections);
+			mapIndex.put(dataType, 0);
+			
+			Object[] array = mapArray.get(dataType);
+			if(array == null){
+				// Array auxiliar con longitud igual a los sectores del listado de puntos.
+				array = new Object[totalSections];
+				mapArray.put(dataType, array);
+			}
+			
+			// Se recorren las secciones en las que se han dividido los puntos
+			for(int i=0; i<sections; i++){
+				// Posicion en la que empieza esta seccion
+				int start = i * division; // 0, 1000, 2000 ....
+				// Posicion en la que termina esta seccion
+				int end = i * division + division; // 1000, 2000, ...
+				
+				threads.add(new CercaniasRunnable(i, start, end, dataType));
+			}
+			
+			// Si la ultima seccion tenia un numero inferior al de las otras empezara aqui
+			int start = points.size() - (points.size() % division) - 1;
+
+			if(sections < totalSections){
+				start = 0;
+			}
+			
+			if(start >= 0){	
+				threads.add(new CercaniasRunnable(totalSections - 1, start, points.size(), dataType));
+			}
+		}catch(Exception e){
+			Functions.log(this.getClass().getName(), "Error getNearBy()");
+		}
+	}
+	
+	/**
+	 * Lanza todos los hilos generados para averiguar los datos cercanos de todos los tipos.
+	 * Si solo se han generado para camaras se averiguaran las camaras, si se han generado para incidencias y todos los demas, lanzara
+	 * todos los hilos creados.
+	 */
+	public void start(){
+		if(database != null){
+			// Pool para los hilos
+			ExecutorService executor = Executors.newFixedThreadPool(maxThread);
+			for(Runnable runnable : threads){
+				executor.execute(runnable);
+			}
+			executor.shutdown();	
+		}
+	}
+
+	/**
+	 * Este Runnable recorre el trozo de array que se le ha indicado, comprueba si la distancia entre el punto actual del bucle y 
+	 * el punto siguiente y si hay una distancia minima dada calcula los datos cercanos para ese punto recuperando los ids correspondientes
+	 * al dato mediante una select a la base de datos. (Las select seran diferentes y atacaran a tablas diferentes segun el "type" que
+	 * haya sido proporcionado. ("type" es camaras, radares ....).
+	 * @author dmiguel
+	 *
+	 */
+	private class CercaniasRunnable implements Runnable{
+		private int position;
+		private int start;
+		private int end;
+		private DataType dataType;
+		List<String> result;
+		
+		public CercaniasRunnable(int position, int start, int end, DataType dataType){
+			this.position = position;
+			this.start = start;
+			this.end = end;
+			this.dataType = dataType;
+			this.result = new ArrayList<String>();
+		}
+		
+		@Override
+		public void run() {		
+			
+			// recoge el punto inicial o uno anterior si no es la primera seccion, asi nos aseguramos de filtrar tambien los extremos
+			// de las subsecciones de puntos
+			GeoPoint p0 = null;
+			GeoPoint p1 = null ;
+			if(start != 0){
+				p0 = points.get(start - 1);
+			}else{
+				p0 = points.get(start);
+			}
+			
+			// Añade los cercanos al punto inicial
+			result.addAll(processPoint(dataType, p0));
+
+			// Recorre la subseccion del array
+			for(int i=start; i<end; i+=2){
+				p1 = points.get(i);
+
+				// Calcula la distancia entre dos puntos
+				float[] results = new float[3];
+				Location.distanceBetween(LocationsManager.fromE6ToDegrees(p0.getLatitudeE6()), LocationsManager.fromE6ToDegrees(p0.getLongitudeE6()), LocationsManager.fromE6ToDegrees(p1.getLatitudeE6()), LocationsManager.fromE6ToDegrees(p1.getLongitudeE6()), results);
+				
+				// Si la distancia es menor a la minima permitida añade el punto actual, sino lo desecha
+				if(results[0] > maxDictanceAllowed || i == end -1){
+					result.addAll(processPoint(dataType, p1));
+					p0 = p1;
+					finalPoints++;
+				}else{
+//					Functions.log("IMPORTANT TAG: ", "SKIP" + i);
+				}
+				
+				// Guarda la distancia maxima hallada hasta el momento entre dos puntos a modo informativo
+				if(results[0] > maxdistace){
+					maxdistace = results[0];
+				}
+			}
+
+			// Guarda el resultado de esta subseccion en el array auxiliar
+			Object[] array = mapArray.get(dataType);
+			array[position] = result;
+			mapArray.put(dataType, array);
+			
+			// Suma uno al index que indicara si se han recorrido ya todas las subsecciones
+			int index = mapIndex.get(dataType);
+			index++;
+			mapIndex.put(dataType, index);
+			
+			int totalSections = mapTotalSections.get(dataType);
+			
+			// Si esta es la ultima porcion del array para este tipo de dato se procesan los resultados y se avisa de que ha terminado
+			if(index == totalSections){
+				processSection(dataType, array);
+			}
+		}
+	}
+	
+	/**
+	 * Segun el tipo de dato que esta procesando realiza una consulta u otra, en estas consultas se realiza un calculo matematico para 
+	 * averiguar la distancia entre el punto que se analiza y los puntos de datos (camaras, radares ...) que estan a una distancia menor
+	 * al maximo permitido.
+	 * Una vez hecha la consulta se almacenan los ids de estos datos para cuando termine el proceso de ese tipo de dato recuperar todos
+	 * los datos por id mediante una consulta.
+	 * @param type
+	 * @param point
+	 * @return
+	 */
+	public List<String> processPoint(DataType dataType, GeoPoint point){
+		List<String> result = new ArrayList<String>();
+		HashSet<String> hashSet = new HashSet<String>();
+		
+		double latitudeRadians = LocationsManager.fromE6ToRadians(point.getLatitudeE6());
+		double longitudeRadians = LocationsManager.fromE6ToRadians(point.getLongitudeE6());
+		
+		double latitudeSin = Math.sin(latitudeRadians);
+		double latitudeCos = Math.cos(latitudeRadians);
+		double longitudeSin = Math.sin(longitudeRadians);
+		double longitudeCos = Math.cos(longitudeRadians);
+		
+		String[] args = new String[] {String.valueOf(latitudeSin), String.valueOf(latitudeCos), String.valueOf(longitudeSin), String.valueOf(longitudeCos)};
+		Cursor cursor = null;
+		Cursor cursor2 = null;
+
+		try{		
+			switch (dataType) {
+			case CAMARAS:
+				cursor = database.rawQuery("SELECT " + IDao.ID + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_CAMARAS + " WHERE distance_acos >= " + distanceLimit  + " GROUP BY " + IDao.ID + " ORDER BY distance_acos DESC", args);
+				break;
+			case RADARES:
+				cursor = database.rawQuery("SELECT " + IDao.ID + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_RADARES + " WHERE distance_acos >= " + distanceLimit  + " GROUP BY " + IDao.ID + " ORDER BY distance_acos DESC", args);
+				break;
+			case INCIDENCIAS:
+				cursor = database.rawQuery("SELECT " + DGTColumns.ID_SUCESO + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_SUCESOS_PUNTOS + " WHERE distance_acos >= " + distanceLimit + " GROUP BY " + DGTColumns.ID_SUCESO + " ORDER BY distance_acos DESC", args);
+				cursor2 = database.rawQuery("SELECT " + DGTColumns.ID_SUCESO + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_SUCESOS_AREAS + " WHERE distance_acos >= " + distanceLimit + " GROUP BY " + DGTColumns.ID_SUCESO + " ORDER BY distance_acos DESC", args);
+				break;
+
+			case OBRAS:
+				cursor = database.rawQuery("SELECT " + DGTColumns.ID_SUCESO + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_SUCESOS_OBRAS_PUNTOS + " WHERE distance_acos >= " + distanceLimit + " GROUP BY " + DGTColumns.ID_SUCESO + " ORDER BY distance_acos DESC", args);
+				cursor2 = database.rawQuery("SELECT " + DGTColumns.ID_SUCESO + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_SUCESOS_OBRAS_AREAS + " WHERE distance_acos >= " + distanceLimit + " GROUP BY " + DGTColumns.ID_SUCESO + " ORDER BY distance_acos DESC", args);
+				break;
+			case RESTRICCIONES:
+				cursor = database.rawQuery("SELECT " + DGTColumns.ID_SUCESO + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_SUCESOS_RESTRICCIONES_PUNTOS + " WHERE distance_acos >= " + distanceLimit + " GROUP BY " + DGTColumns.ID_SUCESO + " ORDER BY distance_acos DESC", args);
+				cursor2 = database.rawQuery("SELECT " + DGTColumns.ID_SUCESO + ", (sin_lat_rad * ? + cos_lat_rad * ? * (sin_lon_rad * ? + cos_lon_rad * ?)) AS distance_acos FROM " + DGTSQLiteHelper.TABLE_SUCESOS_RESTRICCIONES_AREAS + " WHERE distance_acos >= " + distanceLimit + " GROUP BY " + DGTColumns.ID_SUCESO + " ORDER BY distance_acos DESC", args);
+				break;
+			default:
+				break;
+			}
+			
+			if(cursor != null){
+				while (cursor.moveToNext()) {
+					String id = cursor.getString(0);
+//					Log.d("IMPORTANT TAG: ", "DISTANCIA: " + DistanceFunctions.distanceMeters(cursor.getDouble(1), DistanceFunctions.EARTH_DIAMETER.EARTH_KM));
+					
+					hashSet.add(id);
+					
+//					if(!result.contains(id)){
+//						result.add(cursor.getString(0));
+//					}
+				}	
+			}
+			
+			if(cursor2 != null){
+				while (cursor2.moveToNext()) {
+					String id = cursor2.getString(0);
+					
+					hashSet.add(id);
+					
+//					if(!result.contains(id)){
+//						result.add(cursor2.getString(0));
+//					}
+				}
+			}
+		}finally{
+			if(cursor != null){
+				cursor.close();
+			}
+			
+			if(cursor2 != null){
+				cursor2.close();
+			}
+		}
+		
+		result.addAll(hashSet);
+		
+		return result;
+	}
+	
+	/**
+	 * Este metodo es llamado cuando se termina de analizar un tipo de dato.
+	 * Primero se crea la clausula "in" para la select con los "ids" que se han obtenido en el procesamiento, una vez creada la clausula
+	 * se lanza una select a la tabla correspondiente mediante el "Dao" general de la aplicacion.
+	 * Finalmente se avisa al listener de que se ha terminado de analizar el dato correspondiente.
+	 * En caso de ser el ultimo dato que queda por recuperar se cierra la base de datos.
+	 * En este metodo finalmente se han separado los ids por grupos de 50 para evitar problemas con la base de datos, a veces
+	 * devolvia un error porque se le habian añadido demasiadas variables  en la clausula "IN".
+	 * @param array
+	 * @param type
+	 */
+	public void processSection(DataType dataType, Object[] array){
+		List<String> selects = new ArrayList<String>();
+		List<String[]> argsList = new ArrayList<String[]>();
+		
+		filterClauses(selects, argsList, array);
+		
+		DGTDao dao = new DGTDao(database);
+		
+		switch (dataType) {
+		case CAMARAS:
+			List<Camara> listCamaras = dao.getCamaras(selects, argsList);
+			Camaras camaras = new Camaras(listCamaras);
+			camaras.generateCamarasPorCarreteraHashMap();
+			
+			handler.sendMessage(handler.obtainMessage(0, new ElementCercania(dataType, camaras, R.string.cercanias_message_camaras_complete)));
+			
+			Functions.log("IMPORTANT TAG: ", "TIEMPO FINAL SECCION  Camaras: " + Calendar.getInstance().getTime().toString());
+			break;
+			
+		case INCIDENCIAS:
+			List<Incidencia> listIncidencias = dao.getIncidencias(selects, argsList);
+			Incidencias resultIncidencias = new Incidencias(listIncidencias);
+			
+			handler.sendMessage(handler.obtainMessage(0, new ElementCercania(dataType, resultIncidencias, R.string.cercanias_message_incidencias_complete)));
+			
+			Functions.log("IMPORTANT TAG: ", "TIEMPO FINAL SECCION  Incidencias: " + Calendar.getInstance().getTime().toString());
+			break;
+
+		case OBRAS:
+			List<Incidencia> listObras = dao.getIncidenciasObras(selects, argsList);
+			IncidenciasObras resultObras = new IncidenciasObras(listObras);
+			
+			handler.sendMessage(handler.obtainMessage(0, new ElementCercania(dataType, resultObras, R.string.cercanias_message_obras_complete)));
+			
+			Functions.log("IMPORTANT TAG: ", "TIEMPO FINAL SECCION  IncidenciasObras: " + Calendar.getInstance().getTime().toString());
+			break;
+			
+		case RADARES:
+			List<Radar> listRadares = dao.getRadares(selects, argsList);
+			Radares resultRadares = new Radares(listRadares);
+			
+			handler.sendMessage(handler.obtainMessage(0, new ElementCercania(dataType, resultRadares, R.string.cercanias_message_radares_complete)));
+			
+			Functions.log("IMPORTANT TAG: ", "TIEMPO FINAL SECCION  Radares: " + Calendar.getInstance().getTime().toString());
+			break;
+			
+		case RESTRICCIONES:
+			List<Incidencia> listRestricciones = dao.getIncidenciasRestricciones(selects, argsList);
+			IncidenciasRestricciones resultRestricciones = new IncidenciasRestricciones(listRestricciones);
+			
+			handler.sendMessage(handler.obtainMessage(0, new ElementCercania(dataType, resultRestricciones, R.string.cercanias_message_restricciones_complete)));
+			
+			Functions.log("IMPORTANT TAG: ", "TIEMPO FINAL SECCION  IncidenciasRestricciones: " + Calendar.getInstance().getTime().toString());
+			break;
+			
+		default:
+			break;
+		}
+		
+		Functions.log("IMPORTANT TAG: ", "DISTANCIA MAXIMA DE MOMENTO: " + maxdistace);
+		Functions.log("IMPORTANT TAG: ", "PUNTOS FINALES: " + finalPoints);
+		
+		countToClose--;
+		
+		if(countToClose == 0){
+			database.close();
+			
+			handler.sendMessage(handler.obtainMessage(0, new ElementCercania(DataType.ALL, null, R.string.cercanias_message_elementos_complete)));
+		}
+	}
+	
+	/**
+	 * Este metodo quita los "ids" repetidos y prepara las clausulas "IN" de las selects
+	 * @param selects
+	 * @param argsList
+	 * @param array
+	 */
+	@SuppressWarnings("unchecked")
+	public void filterClauses(List<String> selects, List<String[]> argsList, Object[] array){
+		List<String> filter = new ArrayList<String>();
+		
+		StringBuilder builder = new StringBuilder();
+		List<String> args = new ArrayList<String>();
+		
+		boolean addLast = false;
+		
+		int appended = 0;
+		
+		// En esta parte del codigo se limpian los ids repetidos
+		HashSet<String> hashSet = new HashSet<String>();
+		for(int i=0; i<array.length; i++){					
+			List<String> sublist = (List<String>) array[i];
+			hashSet.addAll(sublist);
+		}
+		
+		filter.addAll(hashSet);
+		for(int j=0; j<filter.size(); j++){
+			builder.append("?,");
+			args.add(filter.get(j));
+			
+			appended++;
+			if(appended < maxVariableClauseIn){
+				addLast = true;
+			}else{
+				String clause = builder.replace(builder.length() - 1, builder.length(), "").toString();
+				Functions.log("CLAUSULA ", clause);
+				selects.add(" IN (" + clause + ")");
+				argsList.add(args.toArray(new String[args.size()]));
+				
+				builder = new StringBuilder();
+				args = new ArrayList<String>();
+				
+				appended = 0;
+
+				addLast = false;
+			}
+		}
+		
+		// Esto se usaba para filtrar los puntos repetidos pero ahora se hace como se puede ver arriba
+//		for(int i=0; i<array.length; i++){					
+//			List<String> sublist = (List<String>) array[i];
+//			for(int j=0; j<sublist.size(); j++){
+//				if(!filter.contains(sublist.get(j))){
+//					builder.append("?,");
+//					args.add(sublist.get(j));
+//					
+//					appended++;
+//					if(appended < maxVariableClauseIn){
+//						addLast = true;
+//					}else{
+//						String clause = builder.replace(builder.length() - 1, builder.length(), "").toString();
+//						Functions.log("CLAUSULA ", clause);
+//						selects.add(" IN (" + clause + ")");
+//						argsList.add(args.toArray(new String[args.size()]));
+//						
+//						builder = new StringBuilder();
+//						args = new ArrayList<String>();
+//						
+//						appended = 0;
+//
+//						addLast = false;
+//					}
+//					
+//					filter.add(sublist.get(j));
+//				}
+//			}
+//		}
+		
+		if(addLast == true && builder.toString().length() > 0){		
+			String clause = builder.replace(builder.length() - 1, builder.length(), "").toString();
+			Functions.log("CLAUSULA ", clause);
+			selects.add(" IN (" + clause + ")");
+			argsList.add(args.toArray(new String[args.size()]));
+		}
+	}
+
+    /**
+     * Este handler nos sirve para comunicarnos con el listener y nos devuelve al hilo principal.
+     */
+	static class HandlerFilterCercanos extends Handler{
+		private final WeakReference<CercaniasListener> mListener;
+		
+		HandlerFilterCercanos(CercaniasListener listener) {
+			mListener = new WeakReference<CercaniasListener>(listener);
+	    }
+		
+		@Override
+		public void handleMessage(Message message){
+			CercaniasListener listener = mListener.get();
+			if (listener != null) {
+				ElementCercania element = (ElementCercania) message.obj;
+				listener.onCercaniasComplete(element.getDataType(), element.getData(), element.getMessageId());
+			}
+		}
+	}
+
+	
+	/*
+	 https://github.com/sozialhelden/wheelmap-android/wiki/Sqlite,-Distance-calculations
+	 
+	 
+	 
+	 SELECT "location",
+(sin_lat_rad * "sin_lat_rad" + cos_lat_rad * "cos_lat_rad" *
+(sin_lon_rad * "sin_lon_rad" + cos_lon_rad * "cos_lon_rad")) AS "distance_acos"
+FROM "locations"
+ORDER BY "distance_acos" DESC
+LIMIT 10;
+	 */
+
+}

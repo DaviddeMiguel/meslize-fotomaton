@@ -1,0 +1,350 @@
+package es.dgt.db;
+
+import quadram.proyect.zero.db.IDao;
+import android.content.Context;
+import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteOpenHelper;
+import android.util.Log;
+
+public class DGTSQLiteHelper extends SQLiteOpenHelper {
+	
+	//DATABASE EXAMPLE
+	//http://www.vogella.com/articles/AndroidSQLite/article.html
+	
+	//CALCULAR DISTANCIA, FUNCION PARA SQL LITE
+	//http://www.thismuchiknow.co.uk/?p=71
+	
+	private static final String DATABASE_NAME = "dgt.db";
+	private static final int DATABASE_VERSION = 29;
+
+	public static final String TABLE_CONTROL_VERSIONES				= "ControlVersiones";
+	public static final String TABLE_RADARES 						= "Radares";
+	public static final String TABLE_CAMARAS 						= "Camaras";
+	public static final String TABLE_SUCESOS 						= "Sucesos";
+	public static final String TABLE_SUCESOS_PUNTOS					= "SucesosPuntos";
+	public static final String TABLE_SUCESOS_AREAS					= "SucesosAreas";
+	public static final String TABLE_SUCESOS_OBRAS					= "SucesosObras";
+	public static final String TABLE_SUCESOS_OBRAS_PUNTOS			= "SucesosObrasPuntos";
+	public static final String TABLE_SUCESOS_OBRAS_AREAS			= "SucesosObrasAreas";
+	public static final String TABLE_SUCESOS_RESTRICCIONES			= "SucesosRestricciones";
+	public static final String TABLE_SUCESOS_RESTRICCIONES_PUNTOS	= "SucesosRestriccionesPuntos";
+	public static final String TABLE_SUCESOS_RESTRICCIONES_AREAS	= "SucesosRestriccionesAreas";
+	public static final String TABLE_RUTAS							= "Rutas";
+	public static final String TABLE_RUTAS_GRABADAS					= "RutasGrabadas";
+
+	// Database creation sql statement
+	private static final String 
+	CREATE_TABLE_CONTROL_VERSIONES = "create table "
+		+ TABLE_CONTROL_VERSIONES + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			IDao.ID + " text, " +
+			DGTColumns.VERSION_DATE + " text, " +
+			DGTColumns.VERSION_TIPO + " text, " +
+			DGTColumns.VERSION_URL + " text, " +
+			DGTColumns.VERSION_TIME_TO_UPDATE + " integer, " +
+			DGTColumns.VERSION_TTL + " integer" +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_RADARES = "create table "
+		+ TABLE_RADARES + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			IDao.ID + " text, " + 
+			DGTColumns.CARRETERA + " text, " +
+			DGTColumns.SENTIDO + " text, " +
+			DGTColumns.LATITUD + " text, " +
+			DGTColumns.LONGITUD + " text," +
+			DGTColumns.PROVINCIA + " text," +
+			DGTColumns.PK + " text, " +
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_CAMARAS = "create table "
+		+ TABLE_CAMARAS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			IDao.ID + " text, " + 
+			DGTColumns.CARRETERA + " text, " +
+			DGTColumns.SENTIDO + " text, " +
+			DGTColumns.PROVINCIA + " text, " +
+			DGTColumns.LATITUD + " real, " +
+			DGTColumns.LONGITUD + " real," +
+			DGTColumns.IMAGEN + " text, " +
+			DGTColumns.FECHA + " text," +
+			DGTColumns.PK + " text, " +
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+			
+	");";
+
+	private static final String 
+	CREATE_TABLE_SUCESOS = "create table "
+		+ TABLE_SUCESOS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text," +
+			DGTColumns.CARACTER + " text, " +
+			DGTColumns.CATEGORIA + " text, " +
+			DGTColumns.CAUSAS + " text, " +
+			DGTColumns.FECHA_HORA_FIN + " text, " +
+			DGTColumns.ICONO + " text, " +
+			IDao.ID + " text, " +
+			DGTColumns.FECHA_HORA_INI + " text, " +
+			DGTColumns.NOMBRE_LOCALIZACION + " text," +
+			DGTColumns.NIVEL + " text, " +
+			DGTColumns.SINGULARIDAD + " text , " +
+			DGTColumns.SUBTIPO + " text, " +
+			DGTColumns.TIPO + " text, " +
+			DGTColumns.VERSION + " text, " +
+			DGTColumns.VIALIDADES + " text, " +
+			DGTColumns.NUMERO_PUNTOS + " integer " +
+	");";
+
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_PUNTOS = "create table "
+		+ TABLE_SUCESOS_PUNTOS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text , " +
+			DGTColumns.ID_SUCESO + " text , " +
+			DGTColumns.CARRETERA + " text, " +
+			DGTColumns.HACIA + " text, " +
+			DGTColumns.MUNICIPIO + " text, " +
+			DGTColumns.PK + " text, " +
+			DGTColumns.POBLACION + " text, " +
+			DGTColumns.PRECISION + " text, " +
+			DGTColumns.PROVINCIA + " text, " +
+			DGTColumns.SENTIDO + " text, " +
+			DGTColumns.LONGITUD + " text , " +
+			DGTColumns.LATITUD + " text ," +	
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_AREAS = "create table "
+		+ TABLE_SUCESOS_AREAS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text , " +
+			DGTColumns.ID_SUCESO + " text , " +
+			DGTColumns.COMUNIDAD_AUTONOMA + " text, " +
+			DGTColumns.MUNICIPIO + " text, " +
+			DGTColumns.PAIS + " text, " +
+			DGTColumns.POBLACION + " text, " +
+			DGTColumns.PROVINCIA + " text, " +
+			DGTColumns.LONGITUD + " text , " +
+			DGTColumns.LATITUD + " text ," +	
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_OBRAS = "create table "
+		+ TABLE_SUCESOS_OBRAS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text," +
+			DGTColumns.CARACTER + " text, " +
+			DGTColumns.CATEGORIA + " text, " +
+			DGTColumns.CAUSAS + " text, " +
+			DGTColumns.FECHA_HORA_FIN + " text, " +
+			DGTColumns.ICONO + " text, " +
+			IDao.ID + " text, " +
+			DGTColumns.FECHA_HORA_INI + " text, " +
+			DGTColumns.NOMBRE_LOCALIZACION + " text," +
+			DGTColumns.NIVEL + " text, " +
+			DGTColumns.SINGULARIDAD + " text , " +
+			DGTColumns.SUBTIPO + " text, " +
+			DGTColumns.TIPO + " text, " +
+			DGTColumns.VERSION + " text, " +
+			DGTColumns.VIALIDADES + " text, " +
+			DGTColumns.NUMERO_PUNTOS + " integer " +
+	");";
+
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_OBRAS_PUNTOS = "create table "
+		+ TABLE_SUCESOS_OBRAS_PUNTOS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text , " +
+			DGTColumns.ID_SUCESO + " text , " +
+			DGTColumns.CARRETERA + " text, " +
+			DGTColumns.HACIA + " text, " +
+			DGTColumns.MUNICIPIO + " text, " +
+			DGTColumns.PK + " text, " +
+			DGTColumns.POBLACION + " text, " +
+			DGTColumns.PRECISION + " text, " +
+			DGTColumns.PROVINCIA + " text, " +
+			DGTColumns.SENTIDO + " text, " +
+			DGTColumns.LONGITUD + " text , " +
+			DGTColumns.LATITUD + " text ," +	
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_OBRAS_AREAS = "create table "
+		+ TABLE_SUCESOS_OBRAS_AREAS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text , " +
+			DGTColumns.ID_SUCESO + " text , " +
+			DGTColumns.COMUNIDAD_AUTONOMA + " text, " +
+			DGTColumns.MUNICIPIO + " text, " +
+			DGTColumns.PAIS + " text, " +
+			DGTColumns.POBLACION + " text, " +
+			DGTColumns.PROVINCIA + " text, " +
+			DGTColumns.LONGITUD + " text , " +
+			DGTColumns.LATITUD + " text ," +
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_RESTRICCIONES = "create table "
+		+ TABLE_SUCESOS_RESTRICCIONES + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text," +
+			DGTColumns.CARACTER + " text, " +
+			DGTColumns.CATEGORIA + " text, " +
+			DGTColumns.CAUSAS + " text, " +
+			DGTColumns.FECHA_HORA_FIN + " text, " +
+			DGTColumns.ICONO + " text, " +
+			IDao.ID + " text, " +
+			DGTColumns.FECHA_HORA_INI + " text, " +
+			DGTColumns.NOMBRE_LOCALIZACION + " text," +
+			DGTColumns.NIVEL + " text, " +
+			DGTColumns.SINGULARIDAD + " text , " +
+			DGTColumns.SUBTIPO + " text, " +
+			DGTColumns.TIPO + " text, " +
+			DGTColumns.VERSION + " text, " +
+			DGTColumns.VIALIDADES + " text, " +
+			DGTColumns.NUMERO_PUNTOS + " integer " +
+	");";
+
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_RESTRICCIONES_PUNTOS = "create table "
+		+ TABLE_SUCESOS_RESTRICCIONES_PUNTOS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text , " +
+			DGTColumns.ID_SUCESO + " text , " +
+			DGTColumns.CARRETERA + " text, " +
+			DGTColumns.HACIA + " text, " +
+			DGTColumns.MUNICIPIO + " text, " +
+			DGTColumns.PK + " text, " +
+			DGTColumns.POBLACION + " text, " +
+			DGTColumns.PRECISION + " text, " +
+			DGTColumns.PROVINCIA + " text, " +
+			DGTColumns.SENTIDO + " text, " +
+			DGTColumns.LONGITUD + " text , " +
+			DGTColumns.LATITUD + " text ," +
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_SUCESOS_RESTRICCIONES_AREAS = "create table "
+		+ TABLE_SUCESOS_RESTRICCIONES_AREAS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_INCIDENCIA + " text , " +
+			DGTColumns.ID_SUCESO + " text , " +
+			DGTColumns.COMUNIDAD_AUTONOMA + " text, " +
+			DGTColumns.MUNICIPIO + " text, " +
+			DGTColumns.PAIS + " text, " +
+			DGTColumns.POBLACION + " text, " +
+			DGTColumns.PROVINCIA + " text, " +
+			DGTColumns.LONGITUD + " text , " +
+			DGTColumns.LATITUD + " text ," +
+			DGTColumns.SIN_LAT_RAD + " real , " +
+			DGTColumns.SIN_LON_RAD + " real , " +
+			DGTColumns.COS_LAT_RAD + " real , " +
+			DGTColumns.COS_LON_RAD + " real  " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_RUTAS = "create table "
+		+ TABLE_RUTAS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ORIGEN + " text, " +
+			DGTColumns.ORIGEN_LATITUDE_E6 + " integer, " +
+			DGTColumns.ORIGEN_LONGITUDE_E6 + " integer," +
+			DGTColumns.DESTINO + " text, " +
+			DGTColumns.DESTINO_LATITUDE_E6 + " integer, " +
+			DGTColumns.DESTINO_LONGITUDE_E6 + " integer," +
+			DGTColumns.DATE + " text, " +
+			DGTColumns.TYPE + " integer, " +
+			DGTColumns.DISTANCE + " real, " +
+			DGTColumns.TIME + " integer, " +
+			DGTColumns.TOLLS + " integer, " +
+			DGTColumns.HIGHWAYS + " integer " +
+	");";
+	
+	private static final String 
+	CREATE_TABLE_RUTAS_GRABADAS = "create table "
+		+ TABLE_RUTAS_GRABADAS + "( " + 
+			IDao._ID + " integer primary key autoincrement not null unique, " +
+			DGTColumns.ID_RUTA + " integer, " +
+			DGTColumns.LATITUDE_E6 + " integer, " +
+			DGTColumns.LONGITUDE_E6 + " integer, " +
+			DGTColumns.TYPE + " integer " +
+	");";
+
+	public DGTSQLiteHelper(Context context) {
+		super(context, DATABASE_NAME, null, DATABASE_VERSION);
+	}
+
+	@Override
+	public void onCreate(SQLiteDatabase database) {
+		database.execSQL(CREATE_TABLE_CONTROL_VERSIONES);
+		database.execSQL(CREATE_TABLE_RADARES);
+		database.execSQL(CREATE_TABLE_CAMARAS);
+		database.execSQL(CREATE_TABLE_SUCESOS);
+		database.execSQL(CREATE_TABLE_SUCESOS_PUNTOS);
+		database.execSQL(CREATE_TABLE_SUCESOS_AREAS);
+		database.execSQL(CREATE_TABLE_SUCESOS_OBRAS);
+		database.execSQL(CREATE_TABLE_SUCESOS_OBRAS_PUNTOS);
+		database.execSQL(CREATE_TABLE_SUCESOS_OBRAS_AREAS);
+		database.execSQL(CREATE_TABLE_SUCESOS_RESTRICCIONES);
+		database.execSQL(CREATE_TABLE_SUCESOS_RESTRICCIONES_PUNTOS);
+		database.execSQL(CREATE_TABLE_SUCESOS_RESTRICCIONES_AREAS);
+		database.execSQL(CREATE_TABLE_RUTAS);
+		database.execSQL(CREATE_TABLE_RUTAS_GRABADAS);
+		
+//		database.execSQL(CREATE_TABLE_SUCESOS_ESPECIALES);	
+	}
+
+	@Override
+	public void onUpgrade(SQLiteDatabase db, int oldVersion, int newVersion) {
+		Log.w(DGTSQLiteHelper.class.getName(), "Upgrading database from version " + oldVersion + " to " + newVersion + ", which will destroy all old data");
+		
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_CONTROL_VERSIONES);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_RADARES);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_CAMARAS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_PUNTOS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_AREAS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_OBRAS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_OBRAS_PUNTOS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_OBRAS_AREAS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_RESTRICCIONES);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_RESTRICCIONES_PUNTOS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_SUCESOS_RESTRICCIONES_AREAS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_RUTAS);
+		db.execSQL("DROP TABLE IF EXISTS " + TABLE_RUTAS_GRABADAS);
+		
+		onCreate(db);
+	}
+}

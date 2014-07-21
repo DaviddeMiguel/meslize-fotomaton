@@ -1,0 +1,31 @@
+END
+CercaniasDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 79
+/svn/DGT-Android/!svn/ver/885/trunk/quadram-dgt/src/es/dgt/db/CercaniasDao.java
+END
+DGTColumns.java
+K 25
+svn:wc:ra_dav:version-url
+V 77
+/svn/DGT-Android/!svn/ver/906/trunk/quadram-dgt/src/es/dgt/db/DGTColumns.java
+END
+DGTSQLiteHelper.java
+K 25
+svn:wc:ra_dav:version-url
+V 82
+/svn/DGT-Android/!svn/ver/906/trunk/quadram-dgt/src/es/dgt/db/DGTSQLiteHelper.java
+END
+RutasDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 75
+/svn/DGT-Android/!svn/ver/875/trunk/quadram-dgt/src/es/dgt/db/RutasDao.java
+END
+ControlVersionesDao.java
+K 25
+svn:wc:ra_dav:version-url
+V 86
+/svn/DGT-Android/!svn/ver/906/trunk/quadram-dgt/src/es/dgt/db/ControlVersionesDao.java
+END

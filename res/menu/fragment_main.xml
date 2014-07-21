@@ -1,0 +1,17 @@
+<menu xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:meslize="http://schemas.android.com/apk/res-auto" >
+
+    <item
+        android:id="@+id/action_good"
+        android:icon="@drawable/ic_action_good"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_good"
+        meslize:showAsAction="ifRoom"/>
+    <item
+        android:id="@+id/action_share"
+        android:icon="@drawable/ic_action_share"
+        android:showAsAction="ifRoom|withText"
+        android:title="@string/action_share"
+        meslize:showAsAction="ifRoom"/>
+
+</menu>
