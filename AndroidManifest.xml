@@ -1,0 +1,53 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="com.meslize.fotomaton"
+    android:versionCode="2"
+    android:versionName="1.0" >
+
+    <uses-sdk
+        android:minSdkVersion="10"
+        android:targetSdkVersion="19" />
+    
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" />
+    <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE" />
+    <uses-permission android:name="com.example.com.meslize.fotomaton.INTENT_RECEIVER" />
+
+     <permission 
+        android:name="com.example.com.meslize.fotomaton.INTENT_RECEIVER"
+        android:protectionLevel="signature" />
+
+    <application
+        android:allowBackup="true"
+        android:icon="@drawable/ic_launcher"
+        android:theme="@style/AppTheme" >
+        
+        <activity
+            android:name="com.meslize.fotomaton.splash.SplashActivity"
+            android:theme="@android:style/Theme.Light.NoTitleBar"
+            android:label="@string/app_name"
+            android:noHistory="true" >
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+        
+        <activity
+            android:name="com.meslize.fotomaton.MainActivity"
+            android:logo="@drawable/ic_logo"
+            android:label="" />
+        
+        <activity
+            android:name="com.meslize.fotomaton.detail.DetailActivity"
+            android:logo="@drawable/ic_action_back"
+            android:label="@string/action_back" />
+        
+        <activity
+            android:name="com.meslize.fotomaton.detail.result.DetailResultActivity"
+            android:logo="@drawable/ic_action_cancel"
+            android:label="@string/action_cancel" />
+        
+    </application>
+
+</manifest>
