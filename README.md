@@ -8,7 +8,9 @@ Dependencies:
 - android-framework-library // This library is a core for apps that give you commons funcionalities. More info https://github.com/JamesBlueCrow/android-framework-library
 
 
-Copyright 2014 David de Miguel Galán (Meslize)
+License
+=====================
+Copyright 2014 David de Miguel Galán, Meslize
 
 Licensed under the Apache License, Version 2.0 (the "License");
 you may not use this file except in compliance with the License.
